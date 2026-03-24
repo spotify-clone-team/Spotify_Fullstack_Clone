@@ -1,0 +1,15 @@
+# backend
+spotify-clone-backend/node_modules
+spotify-clone-backend/.env
+spotify-clone-backend/uploads/audio/*
+spotify-clone-backend/uploads/covers/*
+!spotify-clone-backend/uploads/audio/.gitkeep
+!spotify-clone-backend/uploads/covers/.gitkeep
+
+# android
+SpotifyClone/.gradle
+SpotifyClone/.idea
+SpotifyClone/build
+SpotifyClone/app/build
+SpotifyClone/local.properties
+SpotifyClone/.kotlin
