@@ -12,10 +12,20 @@ const songSchema = new mongoose.Schema(
       required: true,
       trim: true
     },
+    artist: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Artist",
+      default: null
+    },
     albumName: {
       type: String,
       default: "",
       trim: true
+    },
+    album: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Album",
+      default: null
     },
     genre: {
       type: String,
