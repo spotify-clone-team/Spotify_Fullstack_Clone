@@ -1,7 +1,9 @@
 const env = require("../config/env");
 
 const buildFileUrl = (filePath) => {
-  return `${env.baseUrl}/${filePath.replace(/\\/g, "/")}`;
+  const cleanBaseUrl = env.baseUrl.replace(/\/+$/, "");
+  const cleanPath = filePath.replace(/\\/g, "/").replace(/^\/+/, "");
+  return `${cleanBaseUrl}/${cleanPath}`;
 };
 
 const uploadImageFile = async (req, res, next) => {

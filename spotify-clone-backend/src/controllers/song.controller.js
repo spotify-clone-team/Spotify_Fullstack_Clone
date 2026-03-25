@@ -5,9 +5,10 @@ const Playlist = require("../models/Playlist");
 const env = require("../config/env");
 
 const buildFileUrl = (filePath) => {
-  return `${env.baseUrl}/${filePath.replace(/\\/g, "/")}`;
+  const cleanBaseUrl = env.baseUrl.replace(/\/+$/, "");
+  const cleanPath = filePath.replace(/\\/g, "/").replace(/^\/+/, "");
+  return `${cleanBaseUrl}/${cleanPath}`;
 };
-
 const getAllSongs = async (req, res, next) => {
   try {
     const songs = await Song.find()
