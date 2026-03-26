@@ -19,31 +19,44 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.*
+import androidx.navigation.navArgument
 import coil.compose.AsyncImage
 import com.example.spotifyclone.data.model.Song
 import com.example.spotifyclone.navigation.AppRoute
 import com.example.spotifyclone.ui.home.HomeScreen
 import com.example.spotifyclone.ui.search.SearchScreen
 import com.example.spotifyclone.ui.library.LibraryScreen
+import com.example.spotifyclone.ui.library.LibraryDetailScreen
 import com.example.spotifyclone.viewmodel.PlayerViewModel
 import com.example.spotifyclone.viewmodel.LibraryViewModel
+import com.example.spotifyclone.viewmodel.HomeViewModel
 import com.example.spotifyclone.utils.SessionManager
 
 @Composable
 fun MainScreen(
-    rootNavController: NavHostController, // Để điều hướng ra ngoài (Welcome) khi Logout
-    playerViewModel: PlayerViewModel = viewModel()
+    rootNavController: NavHostController,
+    playerViewModel: PlayerViewModel = viewModel(),
+    homeViewModel: HomeViewModel = viewModel() // Dùng chung dữ liệu bài hát
 ) {
     val navController = rememberNavController()
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
 
+    // --- FIX SCOPE NÈ DƯƠNG: Đưa libraryViewModel lên đây để dùng chung cho mọi màn hình ---
+    val libraryViewModel: LibraryViewModel = viewModel(
+        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                return LibraryViewModel(sessionManager = sessionManager) as T
+            }
+        }
+    )
+
     val currentSong by playerViewModel.currentSong.collectAsState()
     val isPlaying by playerViewModel.isPlaying.collectAsState()
     var showFullPlayer by remember { mutableStateOf(false) }
 
-    // Nếu showFullPlayer = true, đè màn hình Player lên trên cùng
     if (showFullPlayer) {
         PlayerScreen(
             playerViewModel = playerViewModel,
@@ -53,7 +66,6 @@ fun MainScreen(
         Scaffold(
             bottomBar = {
                 Column {
-                    // Chỉ hiện MiniPlayer nếu đang có bài hát được chọn
                     currentSong?.let { song ->
                         MiniPlayer(
                             song = song,
@@ -81,24 +93,43 @@ fun MainScreen(
                         SearchScreen(playerViewModel = playerViewModel)
                     }
 
-                    // 3. Màn hình Thư viện (Đã fix dấu ngoặc thừa)
+                    // 3. Màn hình Thư viện
                     composable(AppRoute.LIBRARY) {
-                        val libraryViewModel: LibraryViewModel = viewModel(
-                            factory = object : androidx.lifecycle.ViewModelProvider.Factory {
-                                override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                                    return LibraryViewModel(sessionManager = sessionManager) as T
-                                }
-                            }
-                        )
+                        // (Đã xóa libraryViewModel ở đây vì đã đưa lên trên cùng)
                         LibraryScreen(
                             libraryViewModel = libraryViewModel,
                             playerViewModel = playerViewModel,
+                            navController = navController,
                             onLogoutClick = {
-                                // Điều hướng về màn hình Welcome (Root)
                                 rootNavController.navigate(AppRoute.WELCOME) {
                                     popUpTo(0) { inclusive = true }
                                 }
                             }
+                        )
+                    }
+
+                    // 4. MÀN HÌNH CHI TIẾT (ALBUM/ARTIST/PLAYLIST)
+                    composable(
+                        route = "library_detail/{type}/{id}/{title}",
+                        arguments = listOf(
+                            navArgument("type") { type = NavType.StringType },
+                            navArgument("id") { type = NavType.StringType },
+                            navArgument("title") { type = NavType.StringType }
+                        )
+                    ) { backStackEntry ->
+                        val type = backStackEntry.arguments?.getString("type") ?: ""
+                        val id = backStackEntry.arguments?.getString("id") ?: ""
+                        val title = backStackEntry.arguments?.getString("title") ?: ""
+
+                        LibraryDetailScreen(
+                            type = type,
+                            id = id,
+                            title = title,
+                            playerViewModel = playerViewModel,
+                            homeViewModel = homeViewModel,
+                            // FIX LỖI "Expression": Dùng biến libraryViewModel chữ l thường, không dùng Class
+                            libraryViewModel = libraryViewModel,
+                            onBackClick = { navController.popBackStack() }
                         )
                     }
                 }

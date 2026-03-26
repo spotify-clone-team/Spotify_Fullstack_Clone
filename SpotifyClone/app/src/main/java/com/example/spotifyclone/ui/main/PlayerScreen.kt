@@ -1,5 +1,5 @@
 package com.example.spotifyclone.ui.main
-
+import androidx.compose.runtime.getValue
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

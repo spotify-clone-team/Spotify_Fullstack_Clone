@@ -16,4 +16,6 @@ object AppRoute {
 
     // Màn hình phát nhạc (FULL SCREEN)
     const val PLAYER = "player"
+    // route để đi vào trong library 
+    const val LIBRARY_DETAIL = "library_detail/{type}/{id}/{title}"
 }

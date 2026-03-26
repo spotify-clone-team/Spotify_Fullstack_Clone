@@ -1,117 +1,139 @@
 package com.example.spotifyclone.viewmodel
 
 import android.app.Application
+import android.content.ComponentName
+import android.net.Uri
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import com.example.spotifyclone.data.model.Song
-import kotlinx.coroutines.*
+import com.example.spotifyclone.service.PlaybackService
+import com.google.common.util.concurrent.ListenableFuture
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
-    private val exoPlayer = ExoPlayer.Builder(application).build()
+
+    private var controllerFuture: ListenableFuture<MediaController>? = null
+    var player: Player? = null
 
     private val _currentSong = MutableStateFlow<Song?>(null)
-    val currentSong = _currentSong.asStateFlow()
+    val currentSong: StateFlow<Song?> = _currentSong.asStateFlow()
 
     private val _isPlaying = MutableStateFlow(false)
-    val isPlaying = _isPlaying.asStateFlow()
+    val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
+    // --- THÊM MỚI: Dây nối cho thanh SeekBar (Thời gian) ---
     private val _currentPosition = MutableStateFlow(0L)
-    val currentPosition = _currentPosition.asStateFlow()
+    val currentPosition: StateFlow<Long> = _currentPosition.asStateFlow()
 
     private val _totalDuration = MutableStateFlow(0L)
-    val totalDuration = _totalDuration.asStateFlow()
+    val totalDuration: StateFlow<Long> = _totalDuration.asStateFlow()
 
-    // Danh sách bài hát để chuyển bài (Next/Prev)
-    private var playlist: List<Song> = emptyList()
-    private var currentIndex = -1
+    private var progressJob: Job? = null // Biến đếm thời gian chạy
 
     init {
-        // Lắng nghe sự kiện từ ExoPlayer để tự động chuyển bài khi hết nhạc
-        exoPlayer.addListener(object : Player.Listener {
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                _isPlaying.value = isPlaying
-            }
-            override fun onPlaybackStateChanged(state: Int) {
-                if (state == Player.STATE_READY) {
-                    _totalDuration.value = exoPlayer.duration.coerceAtLeast(0)
-                } else if (state == Player.STATE_ENDED) {
-                    playNext() // Hết bài tự nhảy bài tiếp theo
-                }
-            }
-        })
-    }
+        val sessionToken = SessionToken(
+            application,
+            ComponentName(application, PlaybackService::class.java)
+        )
+        controllerFuture = MediaController.Builder(application, sessionToken).buildAsync()
 
-    fun setPlaylist(list: List<Song>, startIndex: Int) {
-        playlist = list
-        currentIndex = startIndex
-        playSong(playlist[currentIndex])
+        controllerFuture?.addListener({
+            player = controllerFuture?.get()
+
+            player?.addListener(object : Player.Listener {
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    _isPlaying.value = isPlaying
+                    // Nếu đang hát thì đếm thời gian, dừng thì ngừng đếm
+                    if (isPlaying) startProgressTracker() else stopProgressTracker()
+                }
+
+                override fun onPlaybackStateChanged(state: Int) {
+                    // Khi bài hát tải xong, lấy tổng thời gian bài hát
+                    if (state == Player.STATE_READY) {
+                        _totalDuration.value = player?.duration?.coerceAtLeast(0L) ?: 0L
+                    }
+                }
+            })
+        }, ContextCompat.getMainExecutor(application))
     }
 
     fun playSong(song: Song) {
-        if (_currentSong.value?._id == song._id) {
-            togglePlayPause()
-            return
-        }
-
         _currentSong.value = song
-        val mediaItem = MediaItem.fromUri(song.audioUrl)
-        exoPlayer.setMediaItem(mediaItem)
-        exoPlayer.prepare()
-        exoPlayer.play()
+        player?.let {
+            val metadata = MediaMetadata.Builder()
+                .setTitle(song.title)
+                .setArtist(song.artistName ?: "Unknown Artist")
+                .setArtworkUri(Uri.parse(song.coverUrl ?: ""))
+                .build()
 
-        startProgressUpdates()
+            val mediaItem = MediaItem.Builder()
+                .setUri(song.audioUrl)
+                .setMediaMetadata(metadata)
+                .build()
+
+            it.setMediaItem(mediaItem)
+            it.prepare()
+            it.play()
+        }
     }
 
     fun togglePlayPause() {
-        if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+        player?.let { if (it.isPlaying) it.pause() else it.play() }
     }
 
-    // --- CÁC HÀM XỊN XÒ BỒ CẦN ---
+    // --- THÊM MỚI: Các hàm điều khiển cho màn hình PlayerScreen ---
+
+    fun seekTo(position: Long) {
+        player?.seekTo(position)
+        _currentPosition.value = position
+    }
 
     fun seekForward() {
-        val target = exoPlayer.currentPosition + 10000 // +10s
-        exoPlayer.seekTo(target.coerceAtMost(exoPlayer.duration))
+        player?.let { it.seekTo((it.currentPosition + 10000).coerceAtMost(it.duration)) }
     }
 
     fun seekBackward() {
-        val target = exoPlayer.currentPosition - 10000 // -10s
-        exoPlayer.seekTo(target.coerceAtLeast(0))
+        player?.let { it.seekTo((it.currentPosition - 10000).coerceAtLeast(0)) }
     }
 
+    // Tạm thời thiết lập Next/Previous (Nếu bồ có mảng Playlist thì mình xử lý sâu hơn sau)
     fun playNext() {
-        if (playlist.isNotEmpty() && currentIndex < playlist.size - 1) {
-            currentIndex++
-            playSong(playlist[currentIndex])
-        }
+        // Code nhảy bài tiếp theo (Cần có danh sách bài)
     }
 
     fun playPrevious() {
-        if (playlist.isNotEmpty() && currentIndex > 0) {
-            currentIndex--
-            playSong(playlist[currentIndex])
-        }
+        // Code lùi bài trước đó
     }
 
-    fun seekTo(positionMs: Long) {
-        exoPlayer.seekTo(positionMs)
-    }
-
-    private fun startProgressUpdates() {
-        CoroutineScope(Dispatchers.Main).launch {
-            while (isActive && _currentSong.value != null) {
-                _currentPosition.value = exoPlayer.currentPosition
-                delay(500) // Cập nhật nhanh hơn (0.5s) cho mượt
+    // --- THÊM MỚI: Đồng hồ chạy theo thời gian thực ---
+    private fun startProgressTracker() {
+        progressJob?.cancel()
+        progressJob = viewModelScope.launch {
+            while (isActive) {
+                _currentPosition.value = player?.currentPosition?.coerceAtLeast(0L) ?: 0L
+                delay(1000L) // Cứ 1 giây là cập nhật thanh SeekBar 1 lần
             }
         }
+    }
+
+    private fun stopProgressTracker() {
+        progressJob?.cancel()
     }
 
     override fun onCleared() {
         super.onCleared()
-        exoPlayer.release()
+        controllerFuture?.let { MediaController.releaseFuture(it) }
     }
 }

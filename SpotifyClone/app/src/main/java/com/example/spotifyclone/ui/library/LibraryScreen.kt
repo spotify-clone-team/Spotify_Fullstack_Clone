@@ -22,18 +22,17 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import com.example.spotifyclone.data.model.Album
-import com.example.spotifyclone.data.model.Artist
-import com.example.spotifyclone.data.model.Playlist
-import com.example.spotifyclone.ui.theme.SpotifyBlack
 import com.example.spotifyclone.viewmodel.LibraryViewModel
 import com.example.spotifyclone.viewmodel.PlayerViewModel
+import com.example.spotifyclone.ui.theme.SpotifyBlack
 
 @Composable
 fun LibraryScreen(
     libraryViewModel: LibraryViewModel,
     playerViewModel: PlayerViewModel,
+    navController: NavHostController, // ĐÃ THÊM: Để điều hướng sang trang chi tiết
     onLogoutClick: () -> Unit
 ) {
     val uiState by libraryViewModel.uiState.collectAsState()
@@ -45,7 +44,7 @@ fun LibraryScreen(
             .background(SpotifyBlack)
             .statusBarsPadding()
     ) {
-        // --- 1. HEADER ---
+        // --- 1. HEADER (Avatar & Title) ---
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -74,7 +73,7 @@ fun LibraryScreen(
             Icon(Icons.Default.Add, null, tint = Color.White, modifier = Modifier.size(28.dp))
         }
 
-        // --- 2. FILTER CHIPS ---
+        // --- 2. FILTER CHIPS (Playlists, Artists, Albums) ---
         LazyRow(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             contentPadding = PaddingValues(horizontal = 16.dp),
@@ -113,7 +112,7 @@ fun LibraryScreen(
             Icon(Icons.Default.GridView, null, tint = Color.White, modifier = Modifier.size(20.dp))
         }
 
-        // --- 4. DANH SÁCH DỮ LIỆU THỰC TẾ ---
+        // --- 4. LIST DỮ LIỆU THỰC TẾ ---
         if (uiState.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = Color(0xFF1DB954))
@@ -133,14 +132,19 @@ fun LibraryScreen(
                                         contentAlignment = Alignment.Center
                                     ) { Icon(Icons.Default.Favorite, null, tint = Color.White) }
                                 },
-                                isPinned = true
+                                isPinned = true,
+                                onClick = { /* Navigate to Liked Songs Detail */ }
                             )
                         }
                         items(uiState.playlists) { playlist ->
                             LibraryItem(
                                 title = playlist.title,
                                 subtitle = "Playlist • ${playlist.description}",
-                                imageUrl = playlist.coverUrl
+                                imageUrl = playlist.coverUrl,
+                                onClick = { 
+                                    // ĐIỀU HƯỚNG SANG CHI TIẾT PLAYLIST
+                                    navController.navigate("library_detail/PLAYLIST/${playlist._id}/${playlist.title}") 
+                                }
                             )
                         }
                     }
@@ -150,7 +154,11 @@ fun LibraryScreen(
                                 title = artist.name,
                                 subtitle = "Artist",
                                 imageUrl = artist.imageUrl,
-                                isCircularImage = true // NGHỆ SĨ THÌ HÌNH TRÒN
+                                isCircularImage = true,
+                                onClick = { 
+                                    // ĐIỀU HƯỚNG SANG CHI TIẾT NGHỆ SĨ
+                                    navController.navigate("library_detail/ARTIST/${artist._id}/${artist.name}") 
+                                }
                             )
                         }
                     }
@@ -159,7 +167,11 @@ fun LibraryScreen(
                             LibraryItem(
                                 title = album.title,
                                 subtitle = "Album • ${album.artist?.name ?: "Unknown"}",
-                                imageUrl = album.coverUrl
+                                imageUrl = album.coverUrl,
+                                onClick = { 
+                                    // ĐIỀU HƯỚNG SANG CHI TIẾT ALBUM
+                                    navController.navigate("library_detail/ALBUM/${album._id}/${album.title}") 
+                                }
                             )
                         }
                     }
@@ -180,7 +192,10 @@ fun LibraryItem(
     onClick: () -> Unit = {}
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() } // Nút bấm thực thi lệnh navigate
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (leadingIcon != null) leadingIcon()
@@ -188,7 +203,9 @@ fun LibraryItem(
             AsyncImage(
                 model = imageUrl,
                 contentDescription = null,
-                modifier = Modifier.size(64.dp).clip(if (isCircularImage) CircleShape else RoundedCornerShape(4.dp)),
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(if (isCircularImage) CircleShape else RoundedCornerShape(4.dp)),
                 contentScale = ContentScale.Crop
             )
         }
