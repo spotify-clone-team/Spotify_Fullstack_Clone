@@ -1,78 +1,83 @@
 package com.example.spotifyclone.ui.main
 
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.LibraryMusic
-import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
 import com.example.spotifyclone.ui.home.HomeScreen
 import com.example.spotifyclone.ui.library.LibraryScreen
 import com.example.spotifyclone.ui.search.SearchScreen
+import com.example.spotifyclone.ui.theme.SpotifyBlack
+import com.example.spotifyclone.ui.theme.SpotifyCloneTheme
 
-sealed class BottomRoute(val route: String, val label: String) {
-    data object Home : BottomRoute("home", "Home")
-    data object Search : BottomRoute("search", "Search")
-    data object Library : BottomRoute("library", "Library")
+sealed class BottomRoute(
+    val title: String
+) {
+    data object Home : BottomRoute("Home")
+    data object Search : BottomRoute("Search")
+    data object Library : BottomRoute("Library")
 }
 
 @Composable
 fun MainScreen() {
-    val navController = rememberNavController()
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route
+    var selectedIndex by remember { mutableIntStateOf(0) }
 
     val items = listOf(
-        Triple(BottomRoute.Home.route, "Home", Icons.Outlined.Home),
-        Triple(BottomRoute.Search.route, "Search", Icons.Outlined.Search),
-        Triple(BottomRoute.Library.route, "Library", Icons.Outlined.LibraryMusic)
+        BottomRoute.Home,
+        BottomRoute.Search,
+        BottomRoute.Library
     )
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                items.forEach { item ->
+    SpotifyCloneTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(SpotifyBlack)
+        ) {
+            when (selectedIndex) {
+                0 -> HomeScreen()
+                1 -> SearchScreen()
+                2 -> LibraryScreen()
+            }
+
+            NavigationBar(
+                modifier = Modifier.navigationBarsPadding(),
+                containerColor = SpotifyBlack
+            ) {
+                items.forEachIndexed { index, item ->
+                    val icon = when (item) {
+                        BottomRoute.Home -> Icons.Default.Home
+                        BottomRoute.Search -> Icons.Default.Search
+                        BottomRoute.Library -> Icons.Default.LibraryMusic
+                    }
+
                     NavigationBarItem(
-                        selected = currentRoute == item.first,
-                        onClick = {
-                            navController.navigate(item.first) {
-                                popUpTo(BottomRoute.Home.route)
-                                launchSingleTop = true
-                            }
-                        },
+                        selected = selectedIndex == index,
+                        onClick = { selectedIndex = index },
                         icon = {
                             Icon(
-                                imageVector = item.third,
-                                contentDescription = item.second
+                                imageVector = icon,
+                                contentDescription = item.title
                             )
                         },
-                        label = {
-                            Text(item.second)
-                        }
+                        label = { Text(item.title) }
                     )
                 }
             }
-        }
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = BottomRoute.Home.route,
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            composable(BottomRoute.Home.route) { HomeScreen() }
-            composable(BottomRoute.Search.route) { SearchScreen() }
-            composable(BottomRoute.Library.route) { LibraryScreen() }
         }
     }
 }
