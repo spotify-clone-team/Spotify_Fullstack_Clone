@@ -27,7 +27,9 @@ export default function PlaylistsPage() {
       ]);
       setPlaylists(playlistsRes.data.data || []);
       setSongs(songsRes.data.data || []);
-    } catch (error) { setMessage("Lỗi tải dữ liệu"); }
+    } catch (error) { 
+      setMessage("Lỗi tải dữ liệu. Vui lòng thử lại!"); 
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -50,13 +52,13 @@ export default function PlaylistsPage() {
         headers: getAuthHeaders()
       });
 
-      setForm((prev) => ({
-        ...prev,
-        coverUrl: response.data.data.coverUrl 
-      }));
-      setMessage("Upload ảnh playlist thành công");
-    } catch (error) { setMessage("Upload thất bại"); }
-    finally { setUploadingImage(false); }
+      setForm((prev) => ({ ...prev, coverUrl: response.data.data.coverUrl }));
+      setMessage("Upload ảnh cover Playlist thành công!");
+    } catch (error) { 
+      setMessage("Upload ảnh thất bại!"); 
+    } finally { 
+      setUploadingImage(false); 
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -65,15 +67,18 @@ export default function PlaylistsPage() {
       setLoading(true);
       if (editingId) {
         await api.put(`/playlists/${editingId}`, form, { headers: getAuthHeaders() });
-        setMessage("Cập nhật playlist thành công");
+        setMessage("Cập nhật Playlist thành công!");
       } else {
         await api.post("/playlists", form, { headers: getAuthHeaders() });
-        setMessage("Tạo playlist thành công");
+        setMessage("Tạo mới Playlist thành công!");
       }
       resetForm();
       fetchData();
-    } catch (error) { setMessage("Lưu thất bại"); }
-    finally { setLoading(false); }
+    } catch (error) { 
+      setMessage("Lưu dữ liệu thất bại. Kiểm tra lại kết nối."); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const handleEdit = (playlist) => {
@@ -82,27 +87,30 @@ export default function PlaylistsPage() {
       title: playlist.title,
       description: playlist.description,
       coverUrl: playlist.coverUrl,
-      songs: (playlist.songs || []).map(s => s._id),
-      isPublic: playlist.isPublic
+      // Đảm bảo lấy ID bài hát ra cho chuẩn
+      songs: (playlist.songs || []).map(s => typeof s === "object" ? s._id : s),
+      isPublic: playlist.isPublic ?? true
     });
   };
 
-  // --- THÊM HÀM XÓA CHUẨN CRUD ---
+  // --- HÀM XÓA (DELETE) ---
   const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa Playlist này không?")) return;
+    if (!window.confirm("Bồ có chắc muốn xóa Playlist này không? Bay màu luôn đó!")) return;
     try {
       await api.delete(`/playlists/${id}`, { headers: getAuthHeaders() });
-      setMessage("Xóa playlist thành công");
+      setMessage("Xóa Playlist thành công!");
       fetchData();
-      if (editingId === id) resetForm(); // Đang sửa mà xóa thì reset form
-    } catch (error) { setMessage("Xóa thất bại"); }
+      if (editingId === id) resetForm();
+    } catch (error) { 
+      setMessage("Xóa thất bại!"); 
+    }
   };
 
   return (
     <div>
       <div className="page-header">
         <h1>Manage Playlists</h1>
-        <p>Hệ thống quản lý Playlist (Tạo, Sửa, Xóa đầy đủ).</p>
+        <p>Hệ thống quản lý Playlist - CRUD & Cloudinary tích hợp.</p>
       </div>
       
       {message && <div className="alert-box">{message}</div>}
@@ -118,41 +126,60 @@ export default function PlaylistsPage() {
             )}
           </div>
           <form className="song-form" onSubmit={handleSubmit}>
-            <input name="title" placeholder="Playlist title" value={form.title} onChange={(e)=>setForm({...form, title: e.target.value})} required />
-            <input name="description" placeholder="Description" value={form.description} onChange={(e)=>setForm({...form, description: e.target.value})} />
+            <input 
+              name="title" 
+              placeholder="Playlist title" 
+              value={form.title} 
+              onChange={(e) => setForm({...form, title: e.target.value})} 
+              required 
+            />
+            <input 
+              name="description" 
+              placeholder="Description" 
+              value={form.description} 
+              onChange={(e) => setForm({...form, description: e.target.value})} 
+            />
             
             <div className="upload-group">
               <label className="upload-label">Upload Playlist Cover</label>
               <input type="file" accept="image/*" onChange={handleUploadImage} />
+              {uploadingImage && <span className="upload-hint">Đang up lên mây...</span>}
             </div>
-            <input name="coverUrl" value={form.coverUrl} readOnly />
-            {form.coverUrl && <img className="cover-preview" src={form.coverUrl} alt="" />}
+            
+            <input name="coverUrl" placeholder="Cover URL" value={form.coverUrl} readOnly />
+            {form.coverUrl && <img className="cover-preview" src={form.coverUrl} alt="Cover Preview" />}
             
             <button type="submit" className="primary-btn" disabled={loading || uploadingImage}>
-               {editingId ? "Update Playlist" : "Create Playlist"}
+               {loading ? "Đang lưu..." : editingId ? "Update Playlist" : "Create Playlist"}
             </button>
           </form>
         </div>
         
         <div className="card">
+           <div className="songs-list-header">
+             <h2 className="card-title">Playlist List</h2>
+             <button className="secondary-btn" onClick={fetchData}>Refresh</button>
+           </div>
            <div className="song-list">
               {playlists.map(p => (
                 <div key={p._id} className="song-item">
                    <div className="song-item-content">
-                     <div style={{display:'flex', gap:'10px', alignItems: 'center'}}>
-                       <img className="song-thumb" src={p.coverUrl} alt="" />
+                     <div style={{display:'flex', gap:'15px', alignItems: 'center'}}>
+                       {p.coverUrl && <img className="song-thumb" src={p.coverUrl} alt="" />}
                        <div>
                          <h3>{p.title}</h3>
                          <p>{p.description || "No description"}</p>
+                         <span style={{ fontSize: '12px', color: '#888' }}>{p.songs?.length || 0} songs</span>
                        </div>
                      </div>
                      <div className="action-row" style={{marginTop:'10px'}}>
-                        <button className="secondary-btn small-btn" onClick={() => handleEdit(p)}>Edit</button>
-                        <button className="danger-btn small-btn" onClick={() => handleDelete(p._id)}>Delete</button>
+                        <button type="button" className="secondary-btn small-btn" onClick={() => handleEdit(p)}>Edit</button>
+                        <button type="button" className="danger-btn small-btn" onClick={() => handleDelete(p._id)}>Delete</button>
                      </div>
                    </div>
                 </div>
               ))}
+              {playlists.length === 0 && <p style={{color: '#888'}}>Chưa có Playlist nào.</p>}
            </div>
         </div>
       </div>

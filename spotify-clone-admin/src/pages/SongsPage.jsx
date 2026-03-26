@@ -26,6 +26,7 @@ export default function SongsPage() {
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
 
+  // Lọc Album theo Artist
   const filteredAlbums = useMemo(() => {
     if (!form.artist) return albums;
     return albums.filter((album) => {
@@ -49,7 +50,7 @@ export default function SongsPage() {
       setAlbums(albumsRes.data.data || []);
       setPlaylists(playlistsRes.data.data || []);
     } catch (error) {
-      setMessage("Không thể tải dữ liệu hệ thống");
+      setMessage("Không thể tải dữ liệu hệ thống!");
     } finally {
       setFetching(false);
     }
@@ -77,7 +78,7 @@ export default function SongsPage() {
       title: song.title || "",
       artist: artistId,
       album: albumId,
-      playlist: "", 
+      playlist: "", // Reset cái ô chọn Playlist đi để add mới
       genre: song.genre || "",
       durationSeconds: song.durationSeconds || "",
       coverUrl: song.coverUrl || "",
@@ -85,19 +86,20 @@ export default function SongsPage() {
     });
   };
 
-  // --- THÊM HÀM XÓA CHUẨN CRUD ---
+  // --- HÀM XÓA BÀI HÁT (DELETE) ---
   const handleDeleteSong = async (id) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa bài hát này? Hành động này không thể hoàn tác.")) return;
+    if (!window.confirm("Bồ có chắc chắn muốn xóa bài hát này? Không cứu được đâu nhé!")) return;
     try {
       await api.delete(`/songs/${id}`, { headers: getAuthHeaders() });
-      setMessage("Xóa bài hát thành công");
+      setMessage("Xóa bài hát thành công!");
       fetchData();
       if (editingId === id) resetForm();
     } catch (error) { 
-      setMessage("Xóa bài hát thất bại"); 
+      setMessage("Xóa bài hát thất bại!"); 
     }
   };
 
+  // --- UPLOAD ẢNH & NHẠC ---
   const handleUploadCover = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -107,7 +109,7 @@ export default function SongsPage() {
       formData.append("cover", file);
       const response = await api.post("/songs/upload-cover", formData, { headers: getAuthHeaders() });
       setForm((prev) => ({ ...prev, coverUrl: response.data.data.coverUrl }));
-      setMessage("Upload cover lên mây thành công!");
+      setMessage("Upload ảnh cover lên Cloudinary thành công!");
     } catch (error) { setMessage("Upload cover thất bại"); }
     finally { setUploadingCover(false); }
   };
@@ -121,11 +123,12 @@ export default function SongsPage() {
       formData.append("audio", file);
       const response = await api.post("/songs/upload-audio", formData, { headers: getAuthHeaders() });
       setForm((prev) => ({ ...prev, audioUrl: response.data.data.audioUrl }));
-      setMessage("Upload audio lên mây thành công!");
+      setMessage("Upload file mp3 lên Cloudinary thành công!");
     } catch (error) { setMessage("Upload audio thất bại"); }
     finally { setUploadingAudio(false); }
   };
 
+  // --- SUBMIT: TẠO/SỬA BÀI HÁT VÀ ĐẨY VÀO PLAYLIST CHUẨN ---
   const handleSubmitSong = async (e) => {
     e.preventDefault();
     try {
@@ -140,23 +143,40 @@ export default function SongsPage() {
       if (editingId) {
         const res = await api.put(`/songs/${editingId}`, payload, { headers: getAuthHeaders() });
         songId = res.data.data._id;
-        setMessage("Cập nhật bài hát thành công");
+        setMessage("Cập nhật bài hát thành công!");
       } else {
         const res = await api.post("/songs", payload, { headers: getAuthHeaders() });
         songId = res.data.data._id;
-        setMessage("Thêm bài hát mới thành công");
+        setMessage("Thêm bài hát mới thành công!");
       }
 
+      // ĐÂY LÀ CHỖ FIX LOGIC CHO BACKEND KHÔNG HIỂU $PUSH NÈ
       if (form.playlist) {
-        await api.put(`/playlists/${form.playlist}`, { 
-            $push: { songs: songId } 
-        }, { headers: getAuthHeaders() });
+        const selectedPlaylist = playlists.find(p => p._id === form.playlist);
+        if (selectedPlaylist) {
+          // Lấy mảng bài hát hiện tại, biến đổi object thành string ID nếu cần
+          const currentSongIds = (selectedPlaylist.songs || []).map(s => 
+            typeof s === "object" ? s._id : s
+          );
+
+          // Nhét thêm bài hát mới vào nếu chưa có mặt trong mảng
+          if (!currentSongIds.includes(songId)) {
+            const updatedSongs = [...currentSongIds, songId];
+            await api.put(`/playlists/${form.playlist}`, { 
+              songs: updatedSongs 
+            }, { headers: getAuthHeaders() });
+            setMessage(prev => prev + " & Đã thêm vào Playlist!");
+          }
+        }
       }
 
       resetForm();
       fetchData();
-    } catch (error) { setMessage("Lưu bài hát thất bại"); }
-    finally { setLoading(false); }
+    } catch (error) { 
+      setMessage("Lưu bài hát thất bại!"); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   return (
@@ -191,6 +211,7 @@ export default function SongsPage() {
               {filteredAlbums.map((alb) => <option key={alb._id} value={alb._id}>{alb.title}</option>)}
             </select>
 
+            {/* CHỌN PLAYLIST LÚC TẠO HOẶC SỬA */}
             <select name="playlist" value={form.playlist} onChange={handleChange}>
               <option value="">Add to Playlist (Optional)</option>
               {playlists.map((pl) => (
@@ -206,19 +227,20 @@ export default function SongsPage() {
             <div className="upload-group">
               <label className="upload-label">Upload Cover</label>
               <input type="file" accept="image/*" onChange={handleUploadCover} />
-              {uploadingCover && <span className="upload-hint">Uploading cover...</span>}
+              {uploadingCover && <span className="upload-hint">Đang up ảnh...</span>}
             </div>
             <input name="coverUrl" value={form.coverUrl} readOnly placeholder="Cover URL" />
+            {form.coverUrl && <img className="cover-preview" src={form.coverUrl} alt="Cover Preview" />}
 
             <div className="upload-group">
-              <label className="upload-label">Upload Audio</label>
+              <label className="upload-label">Upload Audio (MP3)</label>
               <input type="file" accept="audio/*" onChange={handleUploadAudio} />
-              {uploadingAudio && <span className="upload-hint">Uploading audio...</span>}
+              {uploadingAudio && <span className="upload-hint">Đang up nhạc...</span>}
             </div>
             <input name="audioUrl" value={form.audioUrl} readOnly placeholder="Audio URL" required />
 
             <button type="submit" className="primary-btn" disabled={loading || uploadingCover || uploadingAudio}>
-              {editingId ? "Update Song" : "Create Song"}
+              {loading ? "Đang lưu..." : editingId ? "Update Song" : "Create Song"}
             </button>
           </form>
         </div>
@@ -226,26 +248,27 @@ export default function SongsPage() {
         <div className="card">
           <div className="songs-list-header">
             <h2 className="card-title">Song List</h2>
-            <button className="secondary-btn" onClick={fetchData}>Refresh</button>
+            <button type="button" className="secondary-btn" onClick={fetchData}>Refresh</button>
           </div>
           <div className="song-list">
             {songs.map((song) => (
               <div className="song-item" key={song._id}>
                 <div className="song-item-content">
-                  <div style={{display:'flex', gap:'10px'}}>
-                    <img className="song-thumb" src={song.coverUrl} alt="" />
+                  <div style={{display:'flex', gap:'15px', alignItems: 'center'}}>
+                    {song.coverUrl && <img className="song-thumb" src={song.coverUrl} alt="" />}
                     <div>
                       <h3>{song.title}</h3>
                       <p>{song.artist?.name || "Unknown Artist"}</p>
                     </div>
                   </div>
                   <div className="action-row" style={{marginTop:'10px'}}>
-                    <button className="secondary-btn small-btn" onClick={() => handleEditSong(song)}>Edit</button>
-                    <button className="danger-btn small-btn" onClick={() => handleDeleteSong(song._id)}>Delete</button>
+                    <button type="button" className="secondary-btn small-btn" onClick={() => handleEditSong(song)}>Edit</button>
+                    <button type="button" className="danger-btn small-btn" onClick={() => handleDeleteSong(song._id)}>Delete</button>
                   </div>
                 </div>
               </div>
             ))}
+            {songs.length === 0 && !fetching && <p style={{color: '#888'}}>Chưa có bài hát nào.</p>}
           </div>
         </div>
       </div>
