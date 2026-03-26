@@ -15,12 +15,19 @@ object ApiClient {
         .callTimeout(45, TimeUnit.SECONDS)
         .build()
 
-    val apiService: SpotifyApiService by lazy {
+    private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-            .create(SpotifyApiService::class.java)
+    }
+
+    val apiService: SpotifyApiService by lazy {
+        retrofit.create(SpotifyApiService::class.java)
+    }
+
+    val authApiService: AuthApiService by lazy {
+        retrofit.create(AuthApiService::class.java)
     }
 }

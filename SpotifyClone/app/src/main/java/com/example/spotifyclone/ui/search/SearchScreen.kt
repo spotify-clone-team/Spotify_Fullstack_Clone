@@ -1,96 +1,107 @@
 package com.example.spotifyclone.ui.search
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import com.example.spotifyclone.data.model.Song
 import com.example.spotifyclone.ui.theme.SpotifyBlack
-import com.example.spotifyclone.ui.theme.SpotifyCard
-import com.example.spotifyclone.ui.theme.SpotifyTextSecondary
-import com.example.spotifyclone.viewmodel.SongViewModel
+import com.example.spotifyclone.viewmodel.PlayerViewModel
+import com.example.spotifyclone.viewmodel.SearchViewModel
 
 @Composable
 fun SearchScreen(
-    viewModel: SongViewModel = viewModel()
+    searchViewModel: SearchViewModel = viewModel(),
+    playerViewModel: PlayerViewModel
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    var query by remember { mutableStateOf("") }
-
-    val filteredSongs = uiState.songs.filter {
-        val keyword = query.trim()
-        if (keyword.isBlank()) true
-        else {
-            it.title.contains(keyword, ignoreCase = true) ||
-                    (it.artist?.name ?: it.artistName ?: "").contains(keyword, ignoreCase = true) ||
-                    (it.album?.title ?: it.albumName ?: "").contains(keyword, ignoreCase = true) ||
-                    (it.genre ?: "").contains(keyword, ignoreCase = true)
-        }
-    }
+    val uiState by searchViewModel.uiState.collectAsState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(SpotifyBlack)
-            .navigationBarsPadding()
-            .padding(16.dp)
+            .statusBarsPadding()
     ) {
         Text(
-            text = "Search",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
+            "Tìm kiếm",
+            color = Color.White,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(16.dp)
         )
 
-        OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
-            placeholder = { Text("Artists, songs, albums...") },
+        // Thanh Search Bar kiểu Spotify
+        TextField(
+            value = uiState.query,
+            onValueChange = { searchViewModel.onQueryChange(it) },
             modifier = Modifier
-                .padding(top = 16.dp)
-                .fillMaxSize(fraction = 1f)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .clip(RoundedCornerShape(8.dp)),
+            placeholder = { Text("Bạn muốn nghe gì?", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.Search, null, tint = Color.Black) },
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black
+            )
         )
 
-        LazyColumn(
-            contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            items(filteredSongs) { song ->
-                Surface(
-                    color = SpotifyCard,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Text(
-                            text = song.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = song.artist?.name ?: song.artistName ?: "Unknown artist",
-                            color = SpotifyTextSecondary
-                        )
-                    }
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Danh sách kết quả lọc được
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+            items(uiState.filteredSongs) { song ->
+                SearchResultItem(song = song) {
+                    playerViewModel.playSong(song)
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun SearchResultItem(song: Song, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AsyncImage(
+            model = song.coverUrl,
+            contentDescription = null,
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(4.dp)),
+            contentScale = ContentScale.Crop
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column {
+            Text(song.title, color = Color.White, fontWeight = FontWeight.Medium, fontSize = 16.sp)
+            Text(song.artistName ?: "Nghệ sĩ", color = Color.Gray, fontSize = 14.sp)
         }
     }
 }

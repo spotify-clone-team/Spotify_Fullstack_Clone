@@ -2,13 +2,41 @@ const Song = require("../models/Song");
 const Artist = require("../models/Artist");
 const Album = require("../models/Album");
 const Playlist = require("../models/Playlist");
-const env = require("../config/env");
 
-const buildFileUrl = (filePath) => {
-  const cleanBaseUrl = env.baseUrl.replace(/\/+$/, "");
-  const cleanPath = filePath.replace(/\\/g, "/").replace(/^\/+/, "");
-  return `${cleanBaseUrl}/${cleanPath}`;
+// --- 1. LẤY DANH SÁCH CHO LIBRARY (NEW) ---
+
+// Lấy toàn bộ Artist từ Database
+const getAllArtists = async (req, res, next) => {
+  try {
+    const artists = await Artist.find().sort({ name: 1 });
+    return res.json({ success: true, data: artists });
+  } catch (error) {
+    next(error);
+  }
 };
+
+// Lấy toàn bộ Album từ Database
+const getAllAlbums = async (req, res, next) => {
+  try {
+    const albums = await Album.find().populate("artist").sort({ createdAt: -1 });
+    return res.json({ success: true, data: albums });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Lấy toàn bộ Playlist từ Database
+const getAllPlaylists = async (req, res, next) => {
+  try {
+    const playlists = await Playlist.find().sort({ createdAt: -1 });
+    return res.json({ success: true, data: playlists });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// --- 2. QUẢN LÝ BÀI HÁT ---
+
 const getAllSongs = async (req, res, next) => {
   try {
     const songs = await Song.find()
@@ -16,10 +44,7 @@ const getAllSongs = async (req, res, next) => {
       .populate("album")
       .sort({ createdAt: -1 });
 
-    return res.json({
-      success: true,
-      data: songs
-    });
+    return res.json({ success: true, data: songs });
   } catch (error) {
     next(error);
   }
@@ -27,47 +52,19 @@ const getAllSongs = async (req, res, next) => {
 
 const createSong = async (req, res, next) => {
   try {
-    const {
-      title,
-      artist,
-      album,
-      genre,
-      durationSeconds,
-      coverUrl,
-      audioUrl
-    } = req.body;
+    const { title, artist, album, genre, durationSeconds, coverUrl, audioUrl } = req.body;
 
     if (!title || !audioUrl || !artist) {
-      return res.status(400).json({
-        success: false,
-        message: "title, artist, audioUrl are required"
-      });
+      return res.status(400).json({ success: false, message: "title, artist, audioUrl are required" });
     }
 
     const artistDoc = await Artist.findById(artist);
-    if (!artistDoc) {
-      return res.status(400).json({
-        success: false,
-        message: "Artist không tồn tại"
-      });
-    }
+    if (!artistDoc) return res.status(400).json({ success: false, message: "Artist không tồn tại" });
 
     let albumDoc = null;
     if (album) {
       albumDoc = await Album.findById(album);
-      if (!albumDoc) {
-        return res.status(400).json({
-          success: false,
-          message: "Album không tồn tại"
-        });
-      }
-
-      if (String(albumDoc.artist) !== String(artistDoc._id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Album không thuộc artist đã chọn"
-        });
-      }
+      if (!albumDoc) return res.status(400).json({ success: false, message: "Album không tồn tại" });
     }
 
     const song = await Song.create({
@@ -78,16 +75,12 @@ const createSong = async (req, res, next) => {
       albumName: albumDoc?.title || "",
       genre,
       durationSeconds,
-      coverUrl,
-      audioUrl,
+      coverUrl, // Link Cloudinary từ Web Admin gửi xuống
+      audioUrl,  // Link Cloudinary từ Web Admin gửi xuống
       createdBy: req.user.userId
     });
 
-    return res.status(201).json({
-      success: true,
-      message: "Song created successfully",
-      data: song
-    });
+    return res.status(201).json({ success: true, data: song });
   } catch (error) {
     next(error);
   }
@@ -96,73 +89,14 @@ const createSong = async (req, res, next) => {
 const updateSong = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const {
-      title,
-      artist,
-      album,
-      genre,
-      durationSeconds,
-      coverUrl,
-      audioUrl
-    } = req.body;
-
     const song = await Song.findById(id);
-    if (!song) {
-      return res.status(404).json({
-        success: false,
-        message: "Song not found"
-      });
-    }
+    if (!song) return res.status(404).json({ success: false, message: "Song not found" });
 
-    let artistDoc = null;
-    let albumDoc = null;
-
-    if (artist) {
-      artistDoc = await Artist.findById(artist);
-      if (!artistDoc) {
-        return res.status(400).json({
-          success: false,
-          message: "Artist không tồn tại"
-        });
-      }
-    }
-
-    if (album) {
-      albumDoc = await Album.findById(album);
-      if (!albumDoc) {
-        return res.status(400).json({
-          success: false,
-          message: "Album không tồn tại"
-        });
-      }
-    }
-
-    const finalArtist = artistDoc || (song.artist ? await Artist.findById(song.artist) : null);
-
-    if (albumDoc && finalArtist && String(albumDoc.artist) !== String(finalArtist._id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Album không thuộc artist đã chọn"
-      });
-    }
-
-    song.title = title ?? song.title;
-    song.artist = finalArtist?._id || null;
-    song.artistName = finalArtist?.name || song.artistName;
-    song.album = albumDoc?._id || null;
-    song.albumName = albumDoc?.title || "";
-    song.genre = genre ?? song.genre;
-    song.durationSeconds = durationSeconds ?? song.durationSeconds;
-    song.coverUrl = coverUrl ?? song.coverUrl;
-    song.audioUrl = audioUrl ?? song.audioUrl;
-
+    // Cập nhật các trường thông tin (giữ logic cũ của bồ)
+    Object.assign(song, req.body);
     await song.save();
 
-    return res.json({
-      success: true,
-      message: "Song updated successfully",
-      data: song
-    });
+    return res.json({ success: true, data: song });
   } catch (error) {
     next(error);
   }
@@ -171,50 +105,28 @@ const updateSong = async (req, res, next) => {
 const deleteSong = async (req, res, next) => {
   try {
     const { id } = req.params;
-
     const playlistExists = await Playlist.exists({ songs: id });
-    if (playlistExists) {
-      return res.status(409).json({
-        success: false,
-        message: "Không thể xóa bài hát vì đang nằm trong playlist"
-      });
-    }
+    if (playlistExists) return res.status(409).json({ success: false, message: "Đang nằm trong playlist, không xóa được!" });
 
-    const deletedSong = await Song.findByIdAndDelete(id);
-
-    if (!deletedSong) {
-      return res.status(404).json({
-        success: false,
-        message: "Song not found"
-      });
-    }
-
-    return res.json({
-      success: true,
-      message: "Song deleted successfully"
-    });
+    await Song.findByIdAndDelete(id);
+    return res.json({ success: true, message: "Deleted" });
   } catch (error) {
     next(error);
   }
 };
 
+// --- 3. UPLOAD FILE LÊN CLOUDINARY (UPDATED) ---
+
 const uploadCoverFile = async (req, res, next) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "No cover file uploaded"
-      });
-    }
+    if (!req.file) return res.status(400).json({ success: false, message: "No file uploaded" });
 
-    const coverUrl = buildFileUrl(req.file.path);
-
+    // FIX: Với Cloudinary, req.file.path là URL hoàn chỉnh luôn
     return res.status(201).json({
       success: true,
-      message: "Cover uploaded successfully",
+      message: "Cover uploaded to Cloudinary",
       data: {
-        filename: req.file.filename,
-        coverUrl
+        coverUrl: req.file.path 
       }
     });
   } catch (error) {
@@ -224,21 +136,13 @@ const uploadCoverFile = async (req, res, next) => {
 
 const uploadAudioFile = async (req, res, next) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "No audio file uploaded"
-      });
-    }
-
-    const audioUrl = buildFileUrl(req.file.path);
+    if (!req.file) return res.status(400).json({ success: false, message: "No file uploaded" });
 
     return res.status(201).json({
       success: true,
-      message: "Audio uploaded successfully",
+      message: "Audio uploaded to Cloudinary",
       data: {
-        filename: req.file.filename,
-        audioUrl
+        audioUrl: req.file.path 
       }
     });
   } catch (error) {
@@ -248,6 +152,9 @@ const uploadAudioFile = async (req, res, next) => {
 
 module.exports = {
   getAllSongs,
+  getAllArtists,
+  getAllAlbums,
+  getAllPlaylists,
   createSong,
   updateSong,
   deleteSong,

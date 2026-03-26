@@ -2,27 +2,15 @@ package com.example.spotifyclone.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -30,185 +18,119 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.spotifyclone.data.model.Song
-import com.example.spotifyclone.ui.theme.SpotifyCard
-import com.example.spotifyclone.ui.theme.SpotifyChip
-import com.example.spotifyclone.ui.theme.SpotifyGreen
-import com.example.spotifyclone.ui.theme.SpotifyTextSecondary
-import com.example.spotifyclone.viewmodel.SongViewModel
+import com.example.spotifyclone.ui.theme.SpotifyBlack
+import com.example.spotifyclone.viewmodel.HomeViewModel
+import com.example.spotifyclone.viewmodel.PlayerViewModel
 
 @Composable
 fun HomeScreen(
-    onSongClick: (Song) -> Unit = {},
-    viewModel: SongViewModel = viewModel()
+    homeViewModel: HomeViewModel = viewModel(),
+    playerViewModel: PlayerViewModel // Nhận từ MainScreen
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by homeViewModel.uiState.collectAsState()
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        SpotifyGreen.copy(alpha = 0.18f),
-                        MaterialTheme.colorScheme.background
-                    )
-                )
-            )
-            .navigationBarsPadding()
-    ) {
-        when {
-            uiState.isLoading -> {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
-
-            uiState.error != null -> {
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(text = uiState.error ?: "Không thể tải dữ liệu")
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Button(onClick = { viewModel.fetchSongs() }) {
-                        Text("Thử lại")
-                    }
-                }
-            }
-
-            else -> {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = 20.dp,
-                        bottom = 100.dp
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    item {
-                        Text(
-                            text = "Good evening",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    item {
-                        QuickPillsRow()
-                    }
-
-                    item {
-                        SectionTitle("Made for you")
-                    }
-
-                    items(uiState.songs.take(10)) { song ->
-                        SongCard(
-                            song = song,
-                            onClick = { onSongClick(song) }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun QuickPillsRow() {
-    val chips = listOf("Music", "Podcast", "Relax", "Workout", "Focus")
-
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(chips) { chip ->
-            Surface(
-                color = SpotifyChip,
-                shape = RoundedCornerShape(50)
-            ) {
-                Text(
-                    text = chip,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SectionTitle(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleLarge,
-        fontWeight = FontWeight.Bold
+    val gradientBrush = Brush.verticalGradient(
+        colors = listOf(Color(0xFF3F3F3F), SpotifyBlack),
+        startY = 0f,
+        endY = 800f
     )
+
+    Box(modifier = Modifier.fillMaxSize().background(gradientBrush)) {
+        if (uiState.isLoading) {
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color.Green)
+        } else if (uiState.error != null) {
+            Text(uiState.error!!, color = Color.Red, modifier = Modifier.align(Alignment.Center))
+        } else {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp).statusBarsPadding(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Chào buổi tối", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                        Row {
+                            Icon(Icons.Default.History, null, tint = Color.White, modifier = Modifier.size(26.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Icon(Icons.Default.Settings, null, tint = Color.White, modifier = Modifier.size(26.dp))
+                        }
+                    }
+                }
+
+                item {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        val quickSongs = uiState.songs.take(6).chunked(2)
+                        quickSongs.forEach { pair ->
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                pair.forEach { song ->
+                                    QuickAccessItem(song, Modifier.weight(1f)) { playerViewModel.playSong(song) }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                    }
+                }
+
+                item {
+                    Text("Mới phát gần đây", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(16.dp))
+                    LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        items(uiState.songs) { song ->
+                            SongItemCard(song) { playerViewModel.playSong(song) }
+                        }
+                    }
+                }
+
+                item {
+                    Text("Gợi ý cho bạn", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(16.dp))
+                }
+
+                items(uiState.songs) { song ->
+                    SongRowItem(song) { playerViewModel.playSong(song) }
+                }
+            }
+        }
+    }
 }
 
 @Composable
-private fun SongCard(
-    song: Song,
-    onClick: () -> Unit
-) {
+fun QuickAccessItem(song: Song, modifier: Modifier, onClick: () -> Unit) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        color = SpotifyCard,
-        shape = RoundedCornerShape(18.dp)
+        modifier = modifier.height(56.dp).clip(RoundedCornerShape(4.dp)).clickable { onClick() },
+        color = Color.White.copy(alpha = 0.1f)
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            AsyncImage(
-                model = song.coverUrl,
-                contentDescription = song.title,
-                modifier = Modifier
-                    .size(68.dp)
-                    .clip(RoundedCornerShape(14.dp)),
-                contentScale = ContentScale.Crop
-            )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AsyncImage(model = song.coverUrl, contentDescription = null, modifier = Modifier.size(56.dp), contentScale = ContentScale.Crop)
+            Text(song.title, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
 
-            Column(
-                modifier = Modifier
-                    .padding(start = 12.dp)
-                    .weight(1f)
-            ) {
-                Text(
-                    text = song.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1
-                )
+@Composable
+fun SongItemCard(song: Song, onClick: () -> Unit) {
+    Column(modifier = Modifier.width(140.dp).clickable { onClick() }) {
+        AsyncImage(model = song.coverUrl, contentDescription = null, modifier = Modifier.size(140.dp).clip(RoundedCornerShape(8.dp)), contentScale = ContentScale.Crop)
+        Text(song.title, color = Color.White, maxLines = 1, modifier = Modifier.padding(top = 8.dp), fontWeight = FontWeight.SemiBold, overflow = TextOverflow.Ellipsis)
+        Text(song.artistName ?: "Nghệ sĩ", color = Color.Gray, fontSize = 12.sp, maxLines = 1)
+    }
+}
 
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = song.artist?.name ?: song.artistName ?: "Unknown artist",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = SpotifyTextSecondary,
-                    maxLines = 1
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = song.album?.title ?: song.albumName ?: "Single",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = SpotifyTextSecondary,
-                    maxLines = 1
-                )
-            }
+@Composable
+fun SongRowItem(song: Song, onClick: () -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        AsyncImage(model = song.coverUrl, contentDescription = null, modifier = Modifier.size(56.dp).clip(RoundedCornerShape(4.dp)), contentScale = ContentScale.Crop)
+        Spacer(modifier = Modifier.width(12.dp))
+        Column {
+            Text(song.title, color = Color.White, fontWeight = FontWeight.Medium, fontSize = 16.sp, maxLines = 1)
+            Text(song.artistName ?: "Nghệ sĩ", color = Color.Gray, fontSize = 14.sp, maxLines = 1)
         }
     }
 }

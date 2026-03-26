@@ -1,117 +1,62 @@
 package com.example.spotifyclone.ui.auth
 
+import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spotifyclone.ui.theme.SpotifyBlack
-import com.example.spotifyclone.ui.theme.SpotifyGreen
+import com.example.spotifyclone.viewmodel.AuthViewModel
+import com.example.spotifyclone.utils.SessionManager
 
 @Composable
 fun LoginScreen(
     onBackClick: () -> Unit,
     onLoginSuccess: () -> Unit,
-    onGoToSignUp: () -> Unit
+    sessionManager: SessionManager, // Thêm cái này
+    viewModel: AuthViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(SpotifyBlack)
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(24.dp)
-    ) {
-        IconButton(
-            onClick = onBackClick,
-            modifier = Modifier.align(Alignment.TopStart)
-        ) {
-            Icon(Icons.Default.ArrowBack, null, tint = Color.White)
+    LaunchedEffect(uiState) {
+        if (uiState.authData != null) { onLoginSuccess() }
+        if (uiState.error != null) {
+            Toast.makeText(context, uiState.error, Toast.LENGTH_SHORT).show()
+            viewModel.clearError()
         }
+    }
 
-        Column(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Đăng nhập",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White
-            )
-
-            Spacer(modifier = Modifier.padding(top = 24.dp))
-
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Email") }
-            )
-
-            Spacer(modifier = Modifier.padding(top = 12.dp))
-
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Mật khẩu") }
-            )
-
-            Spacer(modifier = Modifier.padding(top = 22.dp))
-
-            Button(
-                onClick = onLoginSuccess,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(40.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = SpotifyGreen,
-                    contentColor = Color.Black
-                )
-            ) {
-                Text(
-                    text = "Đăng nhập",
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(vertical = 6.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.padding(top = 18.dp))
-
-            Text(
-                text = "Chưa có tài khoản? Đăng ký",
-                color = Color.White,
-                modifier = Modifier
-                    .padding(4.dp)
-                    .background(Color.Transparent)
-                    .padding(4.dp)
-            )
+    Column(modifier = Modifier.fillMaxSize().background(SpotifyBlack).padding(24.dp).statusBarsPadding()) {
+        IconButton(onClick = onBackClick, modifier = Modifier.offset(x = (-12).dp)) {
+            Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
         }
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = "Email và mật khẩu", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold)
+        Spacer(modifier = Modifier.height(24.dp))
+
+        SpotifyInputField(value = email, onValueChange = { email = it }, label = "Email", keyboardType = KeyboardType.Email)
+        SpotifyInputField(value = password, onValueChange = { password = it }, label = "Mật khẩu", isPassword = true)
+
+        Spacer(modifier = Modifier.height(32.dp))
+        SpotifyAuthButton(
+            text = "Đăng nhập",
+            isLoading = uiState.isLoading,
+            onClick = { viewModel.login(email, password, sessionManager) } // Truyền sessionManager vào đây
+        )
     }
 }
