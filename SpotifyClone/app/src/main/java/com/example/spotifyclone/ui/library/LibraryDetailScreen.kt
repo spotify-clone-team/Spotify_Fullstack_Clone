@@ -39,7 +39,7 @@ fun LibraryDetailScreen(
     val allSongs = homeUiState.songs
 
     // FIX: Đã tháo remember để tự động cập nhật ngay khi data từ server về
-   val filteredSongs: List<Song> = when (type) {
+    val filteredSongs: List<Song> = when (type) {
         "ALBUM" -> allSongs.filter { it.album?._id == id }
         "ARTIST" -> allSongs.filter { it.artist?._id == id }
         "PLAYLIST" -> {
@@ -48,7 +48,6 @@ fun LibraryDetailScreen(
             currentPlaylist?.songs ?: emptyList()
         }
         else -> emptyList()
-    }
     }
 
     Column(modifier = Modifier.fillMaxSize().background(Color.Black).statusBarsPadding()) {
