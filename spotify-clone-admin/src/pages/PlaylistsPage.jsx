@@ -6,13 +6,13 @@ const initialForm = {
   title: "",
   description: "",
   coverUrl: "",
-  songs: [],
+  songs: [], // Mảng chứa ID các bài hát bồ chọn
   isPublic: true
 };
 
 export default function PlaylistsPage() {
   const [playlists, setPlaylists] = useState([]);
-  const [songs, setSongs] = useState([]);
+  const [allSongs, setAllSongs] = useState([]); // Chứa toàn bộ bài hát từ DB
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
   const [message, setMessage] = useState("");
@@ -26,7 +26,7 @@ export default function PlaylistsPage() {
         api.get("/songs")
       ]);
       setPlaylists(playlistsRes.data.data || []);
-      setSongs(songsRes.data.data || []);
+      setAllSongs(songsRes.data.data || []);
     } catch (error) { 
       setMessage("Lỗi tải dữ liệu. Vui lòng thử lại!"); 
     }
@@ -61,6 +61,13 @@ export default function PlaylistsPage() {
     }
   };
 
+  // --- HÀM MỚI: XỬ LÝ KHI CHỌN BÀI HÁT TỪ DANH SÁCH MULTI-SELECT ---
+  const handleSongsChange = (e) => {
+    // Lấy tất cả các ID của những <option> đang được bôi đen (chọn)
+    const selectedOptions = Array.from(e.target.selectedOptions).map(option => option.value);
+    setForm(prev => ({ ...prev, songs: selectedOptions }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -87,13 +94,12 @@ export default function PlaylistsPage() {
       title: playlist.title,
       description: playlist.description,
       coverUrl: playlist.coverUrl,
-      // Đảm bảo lấy ID bài hát ra cho chuẩn
+      // Khi bấm Edit, trích xuất ID từ mảng songs (nếu songs là Object)
       songs: (playlist.songs || []).map(s => typeof s === "object" ? s._id : s),
       isPublic: playlist.isPublic ?? true
     });
   };
 
-  // --- HÀM XÓA (DELETE) ---
   const handleDelete = async (id) => {
     if (!window.confirm("Bồ có chắc muốn xóa Playlist này không? Bay màu luôn đó!")) return;
     try {
@@ -110,7 +116,7 @@ export default function PlaylistsPage() {
     <div>
       <div className="page-header">
         <h1>Manage Playlists</h1>
-        <p>Hệ thống quản lý Playlist - CRUD & Cloudinary tích hợp.</p>
+        <p>Hệ thống quản lý Playlist - Thêm bài hát trực tiếp vào Playlist.</p>
       </div>
       
       {message && <div className="alert-box">{message}</div>}
@@ -149,6 +155,38 @@ export default function PlaylistsPage() {
             <input name="coverUrl" placeholder="Cover URL" value={form.coverUrl} readOnly />
             {form.coverUrl && <img className="cover-preview" src={form.coverUrl} alt="Cover Preview" />}
             
+            {/* --- KHU VỰC CHỌN NHIỀU BÀI HÁT (MULTI-SELECT) --- */}
+            <div style={{ marginTop: '15px', marginBottom: '15px' }}>
+              <label className="upload-label" style={{ display: 'block', marginBottom: '8px' }}>
+                Chọn bài hát cho Playlist này (Giữ Ctrl hoặc Cmd để chọn nhiều bài)
+              </label>
+              <select 
+                multiple 
+                name="songs" 
+                value={form.songs} 
+                onChange={handleSongsChange}
+                style={{
+                  width: '100%',
+                  height: '150px',
+                  backgroundColor: '#2a2a2a',
+                  color: 'white',
+                  padding: '10px',
+                  borderRadius: '5px',
+                  border: '1px solid #444'
+                }}
+              >
+                {allSongs.map(song => (
+                  <option key={song._id} value={song._id} style={{ padding: '5px', borderBottom: '1px solid #333' }}>
+                    {song.title} - {song.artistName || "Nghệ sĩ ẩn danh"}
+                  </option>
+                ))}
+              </select>
+              <p style={{ fontSize: '12px', color: '#888', marginTop: '5px' }}>
+                Đã chọn: {form.songs.length} bài hát
+              </p>
+            </div>
+            {/* ----------------------------------------------- */}
+
             <button type="submit" className="primary-btn" disabled={loading || uploadingImage}>
                {loading ? "Đang lưu..." : editingId ? "Update Playlist" : "Create Playlist"}
             </button>
@@ -169,7 +207,9 @@ export default function PlaylistsPage() {
                        <div>
                          <h3>{p.title}</h3>
                          <p>{p.description || "No description"}</p>
-                         <span style={{ fontSize: '12px', color: '#888' }}>{p.songs?.length || 0} songs</span>
+                         <span style={{ fontSize: '12px', color: '#1DB954', fontWeight: 'bold' }}>
+                           🎵 Có {p.songs?.length || 0} bài hát
+                         </span>
                        </div>
                      </div>
                      <div className="action-row" style={{marginTop:'10px'}}>

@@ -6,7 +6,6 @@ const initialForm = {
   title: "",
   artist: "",
   album: "",
-  playlist: "", 
   genre: "",
   durationSeconds: "",
   coverUrl: "",
@@ -17,7 +16,6 @@ export default function SongsPage() {
   const [songs, setSongs] = useState([]);
   const [artists, setArtists] = useState([]);
   const [albums, setAlbums] = useState([]);
-  const [playlists, setPlaylists] = useState([]); 
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -39,16 +37,14 @@ export default function SongsPage() {
     try {
       setFetching(true);
       setMessage("");
-      const [songsRes, artistsRes, albumsRes, playlistsRes] = await Promise.all([
+      const [songsRes, artistsRes, albumsRes] = await Promise.all([
         api.get("/songs"),
         api.get("/artists"),
-        api.get("/albums"),
-        api.get("/playlists") 
+        api.get("/albums")
       ]);
       setSongs(songsRes.data.data || []);
       setArtists(artistsRes.data.data || []);
       setAlbums(albumsRes.data.data || []);
-      setPlaylists(playlistsRes.data.data || []);
     } catch (error) {
       setMessage("Không thể tải dữ liệu hệ thống!");
     } finally {
@@ -78,7 +74,6 @@ export default function SongsPage() {
       title: song.title || "",
       artist: artistId,
       album: albumId,
-      playlist: "", // Reset cái ô chọn Playlist đi để add mới
       genre: song.genre || "",
       durationSeconds: song.durationSeconds || "",
       coverUrl: song.coverUrl || "",
@@ -99,7 +94,7 @@ export default function SongsPage() {
     }
   };
 
-  // --- UPLOAD ẢNH & NHẠC ---
+  // --- UPLOAD ẢNH & NHẠC LÊN CLOUDINARY ---
   const handleUploadCover = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -109,7 +104,7 @@ export default function SongsPage() {
       formData.append("cover", file);
       const response = await api.post("/songs/upload-cover", formData, { headers: getAuthHeaders() });
       setForm((prev) => ({ ...prev, coverUrl: response.data.data.coverUrl }));
-      setMessage("Upload ảnh cover lên Cloudinary thành công!");
+      setMessage("Upload ảnh cover thành công!");
     } catch (error) { setMessage("Upload cover thất bại"); }
     finally { setUploadingCover(false); }
   };
@@ -123,12 +118,12 @@ export default function SongsPage() {
       formData.append("audio", file);
       const response = await api.post("/songs/upload-audio", formData, { headers: getAuthHeaders() });
       setForm((prev) => ({ ...prev, audioUrl: response.data.data.audioUrl }));
-      setMessage("Upload file mp3 lên Cloudinary thành công!");
+      setMessage("Upload file mp3 thành công!");
     } catch (error) { setMessage("Upload audio thất bại"); }
     finally { setUploadingAudio(false); }
   };
 
-  // --- SUBMIT: TẠO/SỬA BÀI HÁT VÀ ĐẨY VÀO PLAYLIST CHUẨN ---
+  // --- SUBMIT: TẠO/SỬA BÀI HÁT ---
   const handleSubmitSong = async (e) => {
     e.preventDefault();
     try {
@@ -139,35 +134,12 @@ export default function SongsPage() {
         album: form.album || null
       };
 
-      let songId;
       if (editingId) {
-        const res = await api.put(`/songs/${editingId}`, payload, { headers: getAuthHeaders() });
-        songId = res.data.data._id;
+        await api.put(`/songs/${editingId}`, payload, { headers: getAuthHeaders() });
         setMessage("Cập nhật bài hát thành công!");
       } else {
-        const res = await api.post("/songs", payload, { headers: getAuthHeaders() });
-        songId = res.data.data._id;
+        await api.post("/songs", payload, { headers: getAuthHeaders() });
         setMessage("Thêm bài hát mới thành công!");
-      }
-
-      // ĐÂY LÀ CHỖ FIX LOGIC CHO BACKEND KHÔNG HIỂU $PUSH NÈ
-      if (form.playlist) {
-        const selectedPlaylist = playlists.find(p => p._id === form.playlist);
-        if (selectedPlaylist) {
-          // Lấy mảng bài hát hiện tại, biến đổi object thành string ID nếu cần
-          const currentSongIds = (selectedPlaylist.songs || []).map(s => 
-            typeof s === "object" ? s._id : s
-          );
-
-          // Nhét thêm bài hát mới vào nếu chưa có mặt trong mảng
-          if (!currentSongIds.includes(songId)) {
-            const updatedSongs = [...currentSongIds, songId];
-            await api.put(`/playlists/${form.playlist}`, { 
-              songs: updatedSongs 
-            }, { headers: getAuthHeaders() });
-            setMessage(prev => prev + " & Đã thêm vào Playlist!");
-          }
-        }
       }
 
       resetForm();
@@ -183,7 +155,7 @@ export default function SongsPage() {
     <div className="songs-page">
       <div className="page-header">
         <h1>Manage Songs</h1>
-        <p>Hệ thống quản lý bài hát (CRUD) tích hợp Cloudinary Storage.</p>
+        <p>Hệ thống quản lý bài hát tích hợp Cloudinary Storage.</p>
       </div>
 
       {message && <div className="alert-box">{message}</div>}
@@ -209,16 +181,6 @@ export default function SongsPage() {
             <select name="album" value={form.album} onChange={handleChange}>
               <option value="">No Album</option>
               {filteredAlbums.map((alb) => <option key={alb._id} value={alb._id}>{alb.title}</option>)}
-            </select>
-
-            {/* CHỌN PLAYLIST LÚC TẠO HOẶC SỬA */}
-            <select name="playlist" value={form.playlist} onChange={handleChange}>
-              <option value="">Add to Playlist (Optional)</option>
-              {playlists.map((pl) => (
-                <option key={pl._id} value={pl._id}>
-                  {pl.title}
-                </option>
-              ))}
             </select>
 
             <input name="genre" placeholder="Genre" value={form.genre} onChange={handleChange} />
