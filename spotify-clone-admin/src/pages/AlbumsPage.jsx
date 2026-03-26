@@ -40,6 +40,7 @@ export default function AlbumsPage() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  // --- ĐÂY LÀ CHỖ QUAN TRỌNG ĐÃ FIX CHO CLOUDINARY ---
   const handleUploadImage = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -49,19 +50,23 @@ export default function AlbumsPage() {
       setMessage("");
 
       const formData = new FormData();
-      formData.append("image", file);
+      // FIX 1: Đổi tên key từ "image" thành "cover" để khớp với BE
+      formData.append("cover", file); 
 
-      const response = await api.post("/uploads/image", formData, {
+      // FIX 2: Đổi endpoint từ "/uploads/image" thành "/songs/upload-cover"
+      const response = await api.post("/songs/upload-cover", formData, {
         headers: getAuthHeaders()
       });
 
       setForm((prev) => ({
         ...prev,
-        coverUrl: response.data.data.url
+        // FIX 3: Lấy đúng key "coverUrl" từ data.data
+        coverUrl: response.data.data.coverUrl 
       }));
 
-      setMessage("Upload ảnh thành công");
+      setMessage("Upload ảnh lên Cloudinary thành công!");
     } catch (error) {
+      console.error(error);
       setMessage(error?.response?.data?.message || "Upload ảnh thất bại");
     } finally {
       setUploadingImage(false);
@@ -134,12 +139,13 @@ export default function AlbumsPage() {
     <div>
       <div className="page-header">
         <h1>Manage Albums</h1>
-        <p>Tạo album từ artist đã có.</p>
+        <p>Tạo album từ artist đã có (Lưu trữ trên Cloudinary).</p>
       </div>
 
       {message && <div className="alert-box">{message}</div>}
 
       <div className="songs-grid">
+        {/* FORM CARD */}
         <div className="card">
           <div className="songs-list-header">
             <h2 className="card-title">{editingId ? "Edit Album" : "Create Album"}</h2>
@@ -169,16 +175,18 @@ export default function AlbumsPage() {
             </select>
 
             <div className="upload-group">
-              <label className="upload-label">Upload Cover</label>
+              <label className="upload-label">Upload Cover to Cloudinary</label>
               <input type="file" accept="image/*" onChange={handleUploadImage} />
-              {uploadingImage && <span className="upload-hint">Uploading image...</span>}
+              {uploadingImage && <span className="upload-hint">Uploading...</span>}
             </div>
 
             <input
               name="coverUrl"
-              placeholder="Cover URL"
+              placeholder="Cover URL (Tự động điền sau khi upload)"
               value={form.coverUrl}
               onChange={handleChange}
+              readOnly
+              style={{ backgroundColor: '#1a1a1a', color: '#888' }}
             />
 
             <input
@@ -190,15 +198,19 @@ export default function AlbumsPage() {
             />
 
             {form.coverUrl && (
-              <img className="cover-preview" src={form.coverUrl} alt="album preview" />
+              <div className="preview-container">
+                 <p style={{fontSize: '12px', color: '#aaa'}}>Preview:</p>
+                 <img className="cover-preview" src={form.coverUrl} alt="album preview" />
+              </div>
             )}
 
-            <button type="submit" className="primary-btn" disabled={loading}>
+            <button type="submit" className="primary-btn" disabled={loading || uploadingImage}>
               {loading ? "Saving..." : editingId ? "Update Album" : "Create Album"}
             </button>
           </form>
         </div>
 
+        {/* LIST CARD */}
         <div className="card">
           <div className="songs-list-header">
             <h2 className="card-title">Album List</h2>
@@ -211,15 +223,18 @@ export default function AlbumsPage() {
             {albums.map((album) => (
               <div className="song-item" key={album._id}>
                 <div className="song-item-content">
-                  <h3>{album.title}</h3>
-                  <p>{album.artist?.name || "Unknown artist"}</p>
-                  <span>{album.releaseYear || "No year"}</span>
+                  <div style={{ display: 'flex', gap: '15.dp', alignItems: 'center' }}>
+                    {album.coverUrl && (
+                      <img className="song-thumb" src={album.coverUrl} alt={album.title} />
+                    )}
+                    <div>
+                      <h3>{album.title}</h3>
+                      <p>{album.artist?.name || "Unknown artist"}</p>
+                      <span className="year-tag">{album.releaseYear || "No year"}</span>
+                    </div>
+                  </div>
 
-                  {album.coverUrl && (
-                    <img className="song-thumb" src={album.coverUrl} alt={album.title} />
-                  )}
-
-                  <div className="action-row">
+                  <div className="action-row" style={{ marginTop: '10.dp' }}>
                     <button
                       type="button"
                       className="secondary-btn small-btn"
@@ -239,7 +254,7 @@ export default function AlbumsPage() {
               </div>
             ))}
 
-            {albums.length === 0 && <p>Chưa có album nào.</p>}
+            {albums.length === 0 && <p className="empty-msg">Chưa có album nào trong bộ sưu tập.</p>}
           </div>
         </div>
       </div>
