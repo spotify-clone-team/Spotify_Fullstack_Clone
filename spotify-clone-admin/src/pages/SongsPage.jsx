@@ -6,7 +6,7 @@ const initialForm = {
   title: "",
   artist: "",
   album: "",
-  playlist: "", // Mới thêm trường này nè
+  playlist: "", 
   genre: "",
   durationSeconds: "",
   coverUrl: "",
@@ -17,7 +17,7 @@ export default function SongsPage() {
   const [songs, setSongs] = useState([]);
   const [artists, setArtists] = useState([]);
   const [albums, setAlbums] = useState([]);
-  const [playlists, setPlaylists] = useState([]); // State để lưu danh sách Playlists
+  const [playlists, setPlaylists] = useState([]); 
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,6 @@ export default function SongsPage() {
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
 
-  // Lọc Album theo Artist đã chọn
   const filteredAlbums = useMemo(() => {
     if (!form.artist) return albums;
     return albums.filter((album) => {
@@ -39,21 +38,17 @@ export default function SongsPage() {
     try {
       setFetching(true);
       setMessage("");
-
-      // Gọi thêm API lấy Playlists nữa nhé "cưng"
       const [songsRes, artistsRes, albumsRes, playlistsRes] = await Promise.all([
         api.get("/songs"),
         api.get("/artists"),
         api.get("/albums"),
         api.get("/playlists") 
       ]);
-
       setSongs(songsRes.data.data || []);
       setArtists(artistsRes.data.data || []);
       setAlbums(albumsRes.data.data || []);
       setPlaylists(playlistsRes.data.data || []);
     } catch (error) {
-      console.error(error);
       setMessage("Không thể tải dữ liệu hệ thống");
     } finally {
       setFetching(false);
@@ -77,13 +72,12 @@ export default function SongsPage() {
     setEditingId(song._id);
     const artistId = typeof song.artist === "object" ? song.artist?._id || "" : song.artist || "";
     const albumId = typeof song.album === "object" ? song.album?._id || "" : song.album || "";
-    // Lưu ý: Nếu bồ muốn hiển thị Playlist đang chứa bài này, bồ cần logic filter ID playlist từ DB
     
     setForm({
       title: song.title || "",
       artist: artistId,
       album: albumId,
-      playlist: "", // Thường bài hát có thể nằm trong nhiều playlist nên để trống để bồ chọn thêm
+      playlist: "", 
       genre: song.genre || "",
       durationSeconds: song.durationSeconds || "",
       coverUrl: song.coverUrl || "",
@@ -91,7 +85,19 @@ export default function SongsPage() {
     });
   };
 
-  // --- UPLOAD COVER (CLOUDINARY) ---
+  // --- THÊM HÀM XÓA CHUẨN CRUD ---
+  const handleDeleteSong = async (id) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa bài hát này? Hành động này không thể hoàn tác.")) return;
+    try {
+      await api.delete(`/songs/${id}`, { headers: getAuthHeaders() });
+      setMessage("Xóa bài hát thành công");
+      fetchData();
+      if (editingId === id) resetForm();
+    } catch (error) { 
+      setMessage("Xóa bài hát thất bại"); 
+    }
+  };
+
   const handleUploadCover = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -106,7 +112,6 @@ export default function SongsPage() {
     finally { setUploadingCover(false); }
   };
 
-  // --- UPLOAD AUDIO (CLOUDINARY) ---
   const handleUploadAudio = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -142,10 +147,8 @@ export default function SongsPage() {
         setMessage("Thêm bài hát mới thành công");
       }
 
-      // NẾU CÓ CHỌN PLAYLIST THÌ PHẢI GỌI API THÊM BÀI HÁT VÀO PLAYLIST ĐÓ
       if (form.playlist) {
         await api.put(`/playlists/${form.playlist}`, { 
-            // Logic thêm songId vào mảng songs của Playlist (Bồ check controller Playlist nhé)
             $push: { songs: songId } 
         }, { headers: getAuthHeaders() });
       }
@@ -160,14 +163,21 @@ export default function SongsPage() {
     <div className="songs-page">
       <div className="page-header">
         <h1>Manage Songs</h1>
-        <p>Hệ thống quản lý bài hát tích hợp Cloudinary Storage.</p>
+        <p>Hệ thống quản lý bài hát (CRUD) tích hợp Cloudinary Storage.</p>
       </div>
 
       {message && <div className="alert-box">{message}</div>}
 
       <div className="songs-grid">
         <div className="card">
-          <h2 className="card-title">{editingId ? "Edit Song" : "Create Song"}</h2>
+          <div className="songs-list-header">
+             <h2 className="card-title">{editingId ? "Edit Song" : "Create Song"}</h2>
+             {editingId && (
+               <button type="button" className="secondary-btn" onClick={resetForm}>
+                 Cancel Edit
+               </button>
+             )}
+          </div>
           <form className="song-form" onSubmit={handleSubmitSong}>
             <input name="title" placeholder="Title" value={form.title} onChange={handleChange} required />
 
@@ -181,7 +191,6 @@ export default function SongsPage() {
               {filteredAlbums.map((alb) => <option key={alb._id} value={alb._id}>{alb.title}</option>)}
             </select>
 
-            {/* --- ĐÂY LÀ PHẦN CHỌN PLAYLIST MỚI THÊM --- */}
             <select name="playlist" value={form.playlist} onChange={handleChange}>
               <option value="">Add to Playlist (Optional)</option>
               {playlists.map((pl) => (
@@ -232,7 +241,7 @@ export default function SongsPage() {
                   </div>
                   <div className="action-row" style={{marginTop:'10px'}}>
                     <button className="secondary-btn small-btn" onClick={() => handleEditSong(song)}>Edit</button>
-                    <button className="danger-btn small-btn" onClick={() => api.delete(`/songs/${song._id}`, {headers: getAuthHeaders()}).then(fetchData)}>Delete</button>
+                    <button className="danger-btn small-btn" onClick={() => handleDeleteSong(song._id)}>Delete</button>
                   </div>
                 </div>
               </div>
