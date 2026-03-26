@@ -2,15 +2,16 @@ const Playlist = require("../models/Playlist");
 
 const getAllPlaylists = async (req, res, next) => {
   try {
-    const playlists = await Playlist.find()
-      .populate({
-        path: "songs",
-        populate: [
-          { path: "artist" },
-          { path: "album" }
-        ]
-      })
-      .sort({ createdAt: -1 });
+  
+const playlists = await Playlist.find()
+  .populate({
+    path: "songs",
+    populate: [
+      { path: "artist" },
+      { path: "album" }
+    ]
+  })
+  .sort({ createdAt: -1 });
 
     return res.json({
       success: true,
@@ -55,15 +56,10 @@ const updatePlaylist = async (req, res, next) => {
   try {
     const { id } = req.params;
 
+    // FIX: Xóa sạch đoạn .populate("songs") ở đây luôn
     const playlist = await Playlist.findByIdAndUpdate(id, req.body, {
       new: true,
       runValidators: true
-    }).populate({
-      path: "songs",
-      populate: [
-        { path: "artist" },
-        { path: "album" }
-      ]
     });
 
     if (!playlist) {
@@ -86,7 +82,6 @@ const updatePlaylist = async (req, res, next) => {
 const deletePlaylist = async (req, res, next) => {
   try {
     const { id } = req.params;
-
     const playlist = await Playlist.findByIdAndDelete(id);
 
     if (!playlist) {

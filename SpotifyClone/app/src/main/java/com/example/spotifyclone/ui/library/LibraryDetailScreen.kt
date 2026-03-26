@@ -38,19 +38,17 @@ fun LibraryDetailScreen(
     val libraryUiState by libraryViewModel.uiState.collectAsState()
     val allSongs = homeUiState.songs
 
-    val filteredSongs: List<Song> = remember(allSongs, id, type) {
-        when (type) {
-            "ALBUM" -> allSongs.filter { it.album?._id == id }
-            "ARTIST" -> allSongs.filter { it.artist?._id == id }
-            "PLAYLIST" -> {
-                val currentPlaylist = libraryUiState.playlists.find { it._id == id }
-                // FIX Ở ĐÂY: Thêm <String> để báo cho Kotlin biết đây là danh sách rỗng chứa chữ
-                val songIdsInPlaylist = currentPlaylist?.songs ?: emptyList<String>()
-                allSongs.filter { song -> songIdsInPlaylist.contains(song._id) }
-            }
-            // FIX Ở ĐÂY: Thêm <Song> cho chắc ăn luôn
-            else -> emptyList<Song>()
+    // FIX: Đã tháo remember để tự động cập nhật ngay khi data từ server về
+   val filteredSongs: List<Song> = when (type) {
+        "ALBUM" -> allSongs.filter { it.album?._id == id }
+        "ARTIST" -> allSongs.filter { it.artist?._id == id }
+        "PLAYLIST" -> {
+            // Lấy thẳng danh sách bài hát từ Playlist luôn, không thèm lọc nữa!
+            val currentPlaylist = libraryUiState.playlists.find { it._id == id }
+            currentPlaylist?.songs ?: emptyList()
         }
+        else -> emptyList()
+    }
     }
 
     Column(modifier = Modifier.fillMaxSize().background(Color.Black).statusBarsPadding()) {
