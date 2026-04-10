@@ -1,4 +1,18 @@
-# backend
+# ======================
+# NODE / REACT (GLOBAL)
+# ======================
+node_modules
+dist
+build
+.env
+.env.local
+.env.production
+.env.development
+coverage
+
+# ======================
+# BACKEND
+# ======================
 spotify-clone-backend/node_modules
 spotify-clone-backend/.env
 spotify-clone-backend/uploads/audio/*
@@ -6,10 +20,36 @@ spotify-clone-backend/uploads/covers/*
 !spotify-clone-backend/uploads/audio/.gitkeep
 !spotify-clone-backend/uploads/covers/.gitkeep
 
-# android
+# ======================
+# ADMIN (FRONTEND)
+# ======================
+spotify-clone-admin/node_modules
+spotify-clone-admin/dist
+
+# ======================
+# VITE CACHE
+# ======================
+node_modules/.vite
+
+# ======================
+# SYSTEM FILES
+# ======================
+.DS_Store
+Thumbs.db
+
+# ======================
+# IDE
+# ======================
+.vscode
+.idea
+
+# ======================
+# ANDROID
+# ======================
 SpotifyClone/.gradle
 SpotifyClone/.idea
 SpotifyClone/build
 SpotifyClone/app/build
 SpotifyClone/local.properties
 SpotifyClone/.kotlin
+SpotifyClone/.DS_Store
