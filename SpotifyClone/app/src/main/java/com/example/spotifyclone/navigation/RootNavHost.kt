@@ -1,11 +1,18 @@
 package com.example.spotifyclone.navigation
 
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.spotifyclone.ui.auth.*
+import com.example.spotifyclone.ui.auth.LoginOptionsScreen
+import com.example.spotifyclone.ui.auth.LoginScreen
+import com.example.spotifyclone.ui.auth.SignUpOptionsScreen
+import com.example.spotifyclone.ui.auth.SignUpScreen
+import com.example.spotifyclone.ui.auth.WelcomeScreen
 import com.example.spotifyclone.ui.main.MainScreen
 import com.example.spotifyclone.utils.SessionManager
 
@@ -33,7 +40,9 @@ fun RootNavHost(navController: NavHostController) {
                 onBackClick = { navController.popBackStack() },
                 onEmailClick = { navController.navigate(AppRoute.REGISTER) },
                 onLoginClick = {
-                    navController.navigate(AppRoute.LOGIN_OPTIONS) { popUpTo(AppRoute.WELCOME) }
+                    navController.navigate(AppRoute.LOGIN_OPTIONS) {
+                        popUpTo(AppRoute.WELCOME)
+                    }
                 }
             )
         }
@@ -43,7 +52,9 @@ fun RootNavHost(navController: NavHostController) {
                 onBackClick = { navController.popBackStack() },
                 onEmailClick = { navController.navigate(AppRoute.LOGIN) },
                 onSignUpClick = {
-                    navController.navigate(AppRoute.SIGN_UP_OPTIONS) { popUpTo(AppRoute.WELCOME) }
+                    navController.navigate(AppRoute.SIGN_UP_OPTIONS) {
+                        popUpTo(AppRoute.WELCOME)
+                    }
                 }
             )
         }
@@ -53,7 +64,9 @@ fun RootNavHost(navController: NavHostController) {
                 onBackClick = { navController.popBackStack() },
                 sessionManager = sessionManager,
                 onSignUpSuccess = {
-                    navController.navigate(AppRoute.MAIN) { popUpTo(0) }
+                    navController.navigate(AppRoute.MAIN) {
+                        popUpTo(0)
+                    }
                 }
             )
         }
@@ -63,14 +76,15 @@ fun RootNavHost(navController: NavHostController) {
                 onBackClick = { navController.popBackStack() },
                 sessionManager = sessionManager,
                 onLoginSuccess = {
-                    navController.navigate(AppRoute.MAIN) { popUpTo(0) }
+                    navController.navigate(AppRoute.MAIN) {
+                        popUpTo(0)
+                    }
                 }
             )
         }
 
-
         composable(AppRoute.MAIN) {
-            MainScreen(rootNavController = navController) 
-                    }
+            MainScreen(rootNavController = navController)
+        }
     }
 }

@@ -1,13 +1,34 @@
 package com.example.spotifyclone.ui.main
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -17,36 +38,40 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
-import androidx.navigation.compose.*
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import coil.compose.AsyncImage
 import com.example.spotifyclone.data.model.Song
 import com.example.spotifyclone.navigation.AppRoute
 import com.example.spotifyclone.ui.home.HomeScreen
-import com.example.spotifyclone.ui.search.SearchScreen
-import com.example.spotifyclone.ui.library.LibraryScreen
 import com.example.spotifyclone.ui.library.LibraryDetailScreen
-import com.example.spotifyclone.viewmodel.PlayerViewModel
-import com.example.spotifyclone.viewmodel.LibraryViewModel
-import com.example.spotifyclone.viewmodel.HomeViewModel
+import com.example.spotifyclone.ui.library.LibraryScreen
+import com.example.spotifyclone.ui.search.SearchScreen
 import com.example.spotifyclone.utils.SessionManager
+import com.example.spotifyclone.viewmodel.HomeViewModel
+import com.example.spotifyclone.viewmodel.LibraryViewModel
+import com.example.spotifyclone.viewmodel.PlayerViewModel
 
 @Composable
 fun MainScreen(
     rootNavController: NavHostController,
     playerViewModel: PlayerViewModel = viewModel(),
-    homeViewModel: HomeViewModel = viewModel() // Dùng chung dữ liệu bài hát
+    homeViewModel: HomeViewModel = viewModel()
 ) {
     val navController = rememberNavController()
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
 
-    // --- FIX SCOPE NÈ DƯƠNG: Đưa libraryViewModel lên đây để dùng chung cho mọi màn hình ---
     val libraryViewModel: LibraryViewModel = viewModel(
-        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+        factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                 return LibraryViewModel(sessionManager = sessionManager) as T
             }
@@ -83,19 +108,21 @@ fun MainScreen(
                     navController = navController,
                     startDestination = AppRoute.HOME
                 ) {
-                    // 1. Màn hình Home
-                    composable(AppRoute.HOME) {
-                        HomeScreen(playerViewModel = playerViewModel)
-                    }
+                   composable(AppRoute.HOME) {
+    HomeScreen(
+        homeViewModel = homeViewModel,
+        playerViewModel = playerViewModel
+    )
+}
 
-                    // 2. Màn hình Tìm kiếm
                     composable(AppRoute.SEARCH) {
-                        SearchScreen(playerViewModel = playerViewModel)
-                    }
+    SearchScreen(
+        searchViewModel = viewModel(),
+        playerViewModel = playerViewModel
+    )
+}
 
-                    // 3. Màn hình Thư viện
                     composable(AppRoute.LIBRARY) {
-                        // (Đã xóa libraryViewModel ở đây vì đã đưa lên trên cùng)
                         LibraryScreen(
                             libraryViewModel = libraryViewModel,
                             playerViewModel = playerViewModel,
@@ -108,7 +135,6 @@ fun MainScreen(
                         )
                     }
 
-                    // 4. MÀN HÌNH CHI TIẾT (ALBUM/ARTIST/PLAYLIST)
                     composable(
                         route = "library_detail/{type}/{id}/{title}",
                         arguments = listOf(
@@ -127,7 +153,6 @@ fun MainScreen(
                             title = title,
                             playerViewModel = playerViewModel,
                             homeViewModel = homeViewModel,
-                            // FIX LỖI "Expression": Dùng biến libraryViewModel chữ l thường, không dùng Class
                             libraryViewModel = libraryViewModel,
                             onBackClick = { navController.popBackStack() }
                         )
@@ -139,7 +164,12 @@ fun MainScreen(
 }
 
 @Composable
-fun MiniPlayer(song: Song, isPlaying: Boolean, onToggle: () -> Unit, onClick: () -> Unit) {
+fun MiniPlayer(
+    song: Song,
+    isPlaying: Boolean,
+    onToggle: () -> Unit,
+    onClick: () -> Unit
+) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -156,13 +186,32 @@ fun MiniPlayer(song: Song, isPlaying: Boolean, onToggle: () -> Unit, onClick: ()
             AsyncImage(
                 model = song.coverUrl,
                 contentDescription = null,
-                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(4.dp)),
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(4.dp)),
                 contentScale = ContentScale.Crop
             )
-            Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-                Text(song.title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                Text(song.artistName ?: "Nghệ sĩ", color = Color.Gray, fontSize = 12.sp, maxLines = 1)
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp)
+            ) {
+                Text(
+                    text = song.title,
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+                Text(
+                    text = song.artistName ?: "Nghệ sĩ",
+                    color = Color.Gray,
+                    fontSize = 12.sp,
+                    maxLines = 1
+                )
             }
+
             IconButton(onClick = onToggle) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
@@ -181,18 +230,22 @@ fun SpotifyBottomBar(navController: NavHostController) {
         Triple(AppRoute.SEARCH, "Tìm kiếm", Icons.Default.Search),
         Triple(AppRoute.LIBRARY, "Thư viện", Icons.Default.LibraryMusic)
     )
+
     NavigationBar(containerColor = Color.Black.copy(alpha = 0.95f)) {
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = navBackStackEntry?.destination?.route
+
         items.forEach { (route, label, icon) ->
             NavigationBarItem(
-                icon = { Icon(icon, null) },
+                icon = { Icon(icon, contentDescription = null) },
                 label = { Text(label, fontSize = 10.sp) },
                 selected = currentRoute == route,
                 onClick = {
                     if (currentRoute != route) {
                         navController.navigate(route) {
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
+                            }
                             launchSingleTop = true
                             restoreState = true
                         }

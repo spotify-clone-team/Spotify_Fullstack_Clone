@@ -1,13 +1,18 @@
 package com.example.spotifyclone.data.remote
 
-import com.example.spotifyclone.data.model.* // IMPORT TẤT CẢ MODEL Ở ĐÂY
+import com.example.spotifyclone.data.model.Album
+import com.example.spotifyclone.data.model.ApiResponse
+import com.example.spotifyclone.data.model.Artist
+import com.example.spotifyclone.data.model.Playlist
+import com.example.spotifyclone.data.model.Song
 import retrofit2.http.GET
 
 interface SpotifyApiService {
+
     @GET("songs")
     suspend fun getSongs(): ApiResponse<List<Song>>
 
-    @GET("artists") // Nhớ khớp với Route ở Backend nhé
+    @GET("artists")
     suspend fun getArtists(): ApiResponse<List<Artist>>
 
     @GET("albums")

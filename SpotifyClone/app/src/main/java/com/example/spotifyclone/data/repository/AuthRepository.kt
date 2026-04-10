@@ -6,15 +6,22 @@ import com.example.spotifyclone.data.model.RegisterRequest
 import com.example.spotifyclone.data.remote.ApiClient
 
 class AuthRepository {
+
     suspend fun login(email: String, password: String): AuthData {
-        return ApiClient.authApiService.login(
+        val response = ApiClient.authApiService.login(
             LoginRequest(email = email, password = password)
-        ).data
+        )
+
+        return response.data
+            ?: throw IllegalStateException("Đăng nhập thất bại: máy chủ không trả về dữ liệu người dùng.")
     }
 
     suspend fun register(name: String, email: String, password: String): AuthData {
-        return ApiClient.authApiService.register(
+        val response = ApiClient.authApiService.register(
             RegisterRequest(name = name, email = email, password = password)
-        ).data
+        )
+
+        return response.data
+            ?: throw IllegalStateException("Đăng ký thất bại: máy chủ không trả về dữ liệu người dùng.")
     }
 }

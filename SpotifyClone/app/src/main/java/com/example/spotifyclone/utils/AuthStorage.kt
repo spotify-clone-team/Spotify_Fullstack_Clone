@@ -2,6 +2,14 @@ package com.example.spotifyclone.utils
 
 import android.content.Context
 
+/**
+ * Deprecated:
+ * App hiện tại nên dùng SessionManager (DataStore) để lưu token/session.
+ * Không nên dùng song song SharedPreferences ở file này nữa vì dễ lệch trạng thái đăng nhập.
+ *
+ * Giữ file này tạm thời để tránh lỗi compile nếu chỗ nào đó còn import,
+ * nhưng khuyến nghị không dùng trong code mới.
+ */
 object AuthStorage {
     private const val PREF_NAME = "spotify_clone_prefs"
     private const val KEY_TOKEN = "token"

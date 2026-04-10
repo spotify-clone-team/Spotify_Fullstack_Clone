@@ -1,14 +1,21 @@
 package com.example.spotifyclone.data.remote
 
+import com.example.spotifyclone.utils.Constants
 import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object ApiClient {
-    private const val BASE_URL = "https://spotify-clone-backend-0t69.onrender.com/api/"
+
+    // Log request/response để debug
+    private val logging = HttpLoggingInterceptor().apply {
+        level = HttpLoggingInterceptor.Level.BODY
+    }
 
     private val okHttpClient = OkHttpClient.Builder()
+        .addInterceptor(logging)
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
@@ -17,7 +24,7 @@ object ApiClient {
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(Constants.BASE_URL) // 🔥 dùng Constants
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

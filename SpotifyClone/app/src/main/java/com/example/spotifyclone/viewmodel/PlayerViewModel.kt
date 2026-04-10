@@ -33,20 +33,20 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
-    // --- THÊM MỚI: Dây nối cho thanh SeekBar (Thời gian) ---
     private val _currentPosition = MutableStateFlow(0L)
     val currentPosition: StateFlow<Long> = _currentPosition.asStateFlow()
 
     private val _totalDuration = MutableStateFlow(0L)
     val totalDuration: StateFlow<Long> = _totalDuration.asStateFlow()
 
-    private var progressJob: Job? = null // Biến đếm thời gian chạy
+    private var progressJob: Job? = null
 
     init {
         val sessionToken = SessionToken(
             application,
             ComponentName(application, PlaybackService::class.java)
         )
+
         controllerFuture = MediaController.Builder(application, sessionToken).buildAsync()
 
         controllerFuture?.addListener({
@@ -55,14 +55,29 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             player?.addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     _isPlaying.value = isPlaying
-                    // Nếu đang hát thì đếm thời gian, dừng thì ngừng đếm
-                    if (isPlaying) startProgressTracker() else stopProgressTracker()
+                    if (isPlaying) {
+                        startProgressTracker()
+                    } else {
+                        stopProgressTracker()
+                    }
                 }
 
                 override fun onPlaybackStateChanged(state: Int) {
-                    // Khi bài hát tải xong, lấy tổng thời gian bài hát
-                    if (state == Player.STATE_READY) {
-                        _totalDuration.value = player?.duration?.coerceAtLeast(0L) ?: 0L
+                    when (state) {
+                        Player.STATE_READY -> {
+                            _totalDuration.value = player?.duration?.coerceAtLeast(0L) ?: 0L
+                        }
+
+                        Player.STATE_ENDED -> {
+                            _isPlaying.value = false
+                            stopProgressTracker()
+                            _currentPosition.value = _totalDuration.value
+                        }
+
+                        Player.STATE_IDLE -> {
+                            _isPlaying.value = false
+                            stopProgressTracker()
+                        }
                     }
                 }
             })
@@ -71,11 +86,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun playSong(song: Song) {
         _currentSong.value = song
-        player?.let {
+        _currentPosition.value = 0L
+        _totalDuration.value = 0L
+
+        player?.let { mediaPlayer ->
+            val artistDisplayName = song.artistName ?: song.artist?.name ?: "Unknown Artist"
+
             val metadata = MediaMetadata.Builder()
                 .setTitle(song.title)
-                .setArtist(song.artistName ?: "Unknown Artist")
-                .setArtworkUri(Uri.parse(song.coverUrl ?: ""))
+                .setArtist(artistDisplayName)
+                .setArtworkUri(
+                    song.coverUrl?.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
+                )
                 .build()
 
             val mediaItem = MediaItem.Builder()
@@ -83,17 +105,21 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 .setMediaMetadata(metadata)
                 .build()
 
-            it.setMediaItem(mediaItem)
-            it.prepare()
-            it.play()
+            mediaPlayer.setMediaItem(mediaItem)
+            mediaPlayer.prepare()
+            mediaPlayer.play()
         }
     }
 
     fun togglePlayPause() {
-        player?.let { if (it.isPlaying) it.pause() else it.play() }
+        player?.let { mediaPlayer ->
+            if (mediaPlayer.isPlaying) {
+                mediaPlayer.pause()
+            } else {
+                mediaPlayer.play()
+            }
+        }
     }
-
-    // --- THÊM MỚI: Các hàm điều khiển cho màn hình PlayerScreen ---
 
     fun seekTo(position: Long) {
         player?.seekTo(position)
@@ -101,39 +127,44 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun seekForward() {
-        player?.let { it.seekTo((it.currentPosition + 10000).coerceAtMost(it.duration)) }
+        player?.let { mediaPlayer ->
+            val duration = mediaPlayer.duration.takeIf { it > 0 } ?: Long.MAX_VALUE
+            mediaPlayer.seekTo((mediaPlayer.currentPosition + 10000).coerceAtMost(duration))
+        }
     }
 
     fun seekBackward() {
-        player?.let { it.seekTo((it.currentPosition - 10000).coerceAtLeast(0)) }
+        player?.let { mediaPlayer ->
+            mediaPlayer.seekTo((mediaPlayer.currentPosition - 10000).coerceAtLeast(0))
+        }
     }
 
-    // Tạm thời thiết lập Next/Previous (Nếu bồ có mảng Playlist thì mình xử lý sâu hơn sau)
     fun playNext() {
-        // Code nhảy bài tiếp theo (Cần có danh sách bài)
+        // Có thể xử lý sau khi app có queue/danh sách phát hiện tại
     }
 
     fun playPrevious() {
-        // Code lùi bài trước đó
+        // Có thể xử lý sau khi app có queue/danh sách phát hiện tại
     }
 
-    // --- THÊM MỚI: Đồng hồ chạy theo thời gian thực ---
     private fun startProgressTracker() {
         progressJob?.cancel()
         progressJob = viewModelScope.launch {
             while (isActive) {
                 _currentPosition.value = player?.currentPosition?.coerceAtLeast(0L) ?: 0L
-                delay(1000L) // Cứ 1 giây là cập nhật thanh SeekBar 1 lần
+                delay(1000L)
             }
         }
     }
 
     private fun stopProgressTracker() {
         progressJob?.cancel()
+        progressJob = null
     }
 
     override fun onCleared() {
         super.onCleared()
+        stopProgressTracker()
         controllerFuture?.let { MediaController.releaseFuture(it) }
     }
 }

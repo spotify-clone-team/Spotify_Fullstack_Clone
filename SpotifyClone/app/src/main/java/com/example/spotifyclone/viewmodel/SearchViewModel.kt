@@ -14,7 +14,8 @@ data class SearchUiState(
     val query: String = "",
     val allSongs: List<Song> = emptyList(),
     val filteredSongs: List<Song> = emptyList(),
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val error: String? = null
 )
 
 class SearchViewModel(
@@ -30,13 +31,27 @@ class SearchViewModel(
 
     private fun loadAllSongs() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isLoading = true, error = null) }
+
             try {
                 val response = repository.getSongs()
                 val songs = response.data ?: emptyList()
-                _uiState.update { it.copy(allSongs = songs, filteredSongs = songs, isLoading = false) }
+
+                _uiState.update {
+                    it.copy(
+                        allSongs = songs,
+                        filteredSongs = songs,
+                        isLoading = false,
+                        error = null
+                    )
+                }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false) }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "Không thể tải dữ liệu tìm kiếm"
+                    )
+                }
             }
         }
     }
@@ -46,12 +61,17 @@ class SearchViewModel(
             val filtered = if (newQuery.isBlank()) {
                 state.allSongs
             } else {
-                state.allSongs.filter { 
-                    it.title.contains(newQuery, ignoreCase = true) || 
-                    (it.artistName?.contains(newQuery, ignoreCase = true) ?: false)
+                state.allSongs.filter { song ->
+                    song.title.contains(newQuery, ignoreCase = true) ||
+                    (song.artistName?.contains(newQuery, ignoreCase = true) ?: false) ||
+                    (song.artist?.name?.contains(newQuery, ignoreCase = true) ?: false)
                 }
             }
-            state.copy(query = newQuery, filteredSongs = filtered)
+
+            state.copy(
+                query = newQuery,
+                filteredSongs = filtered
+            )
         }
     }
 }
