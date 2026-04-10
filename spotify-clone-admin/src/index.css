@@ -28,18 +28,28 @@ a {
 }
 
 .admin-layout {
-  display: flex;
   min-height: 100vh;
 }
 
 .sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 260px;
+  height: 100vh;
   background: #0b0d12;
   border-right: 1px solid var(--line);
   padding: 24px 18px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  overflow-y: auto;
+}
+
+.admin-content {
+  margin-left: 260px;
+  min-height: 100vh;
+  padding: 28px;
 }
 
 .sidebar-title {
