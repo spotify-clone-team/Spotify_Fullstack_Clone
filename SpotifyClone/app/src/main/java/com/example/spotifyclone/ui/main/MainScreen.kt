@@ -53,11 +53,13 @@ import com.example.spotifyclone.navigation.AppRoute
 import com.example.spotifyclone.ui.home.HomeScreen
 import com.example.spotifyclone.ui.library.LibraryDetailScreen
 import com.example.spotifyclone.ui.library.LibraryScreen
+import com.example.spotifyclone.ui.profile.ProfileScreen
 import com.example.spotifyclone.ui.search.SearchScreen
 import com.example.spotifyclone.utils.SessionManager
 import com.example.spotifyclone.viewmodel.HomeViewModel
 import com.example.spotifyclone.viewmodel.LibraryViewModel
 import com.example.spotifyclone.viewmodel.PlayerViewModel
+import com.example.spotifyclone.viewmodel.SearchViewModel
 
 @Composable
 fun MainScreen(
@@ -77,6 +79,8 @@ fun MainScreen(
             }
         }
     )
+
+    val searchViewModel: SearchViewModel = viewModel()
 
     val currentSong by playerViewModel.currentSong.collectAsState()
     val isPlaying by playerViewModel.isPlaying.collectAsState()
@@ -108,19 +112,19 @@ fun MainScreen(
                     navController = navController,
                     startDestination = AppRoute.HOME
                 ) {
-                   composable(AppRoute.HOME) {
-    HomeScreen(
-        homeViewModel = homeViewModel,
-        playerViewModel = playerViewModel
-    )
-}
+                    composable(AppRoute.HOME) {
+                        HomeScreen(
+                            homeViewModel = homeViewModel,
+                            playerViewModel = playerViewModel
+                        )
+                    }
 
                     composable(AppRoute.SEARCH) {
-    SearchScreen(
-        searchViewModel = viewModel(),
-        playerViewModel = playerViewModel
-    )
-}
+                        SearchScreen(
+                            searchViewModel = searchViewModel,
+                            playerViewModel = playerViewModel
+                        )
+                    }
 
                     composable(AppRoute.LIBRARY) {
                         LibraryScreen(
@@ -135,8 +139,20 @@ fun MainScreen(
                         )
                     }
 
+                    composable(AppRoute.PROFILE) {
+                        ProfileScreen(
+                            sessionManager = sessionManager,
+                            onBackClick = { navController.popBackStack() },
+                            onLogoutSuccess = {
+                                rootNavController.navigate(AppRoute.WELCOME) {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
                     composable(
-                        route = "library_detail/{type}/{id}/{title}",
+                        route = AppRoute.LIBRARY_DETAIL,
                         arguments = listOf(
                             navArgument("type") { type = NavType.StringType },
                             navArgument("id") { type = NavType.StringType },
@@ -205,7 +221,7 @@ fun MiniPlayer(
                     maxLines = 1
                 )
                 Text(
-                    text = song.artistName ?: "Nghệ sĩ",
+                    text = song.artistName ?: song.artist?.name ?: "Nghệ sĩ",
                     color = Color.Gray,
                     fontSize = 12.sp,
                     maxLines = 1

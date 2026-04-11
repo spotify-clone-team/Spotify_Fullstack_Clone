@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.spotifyclone.ui.theme.SpotifyBlack
+import com.example.spotifyclone.utils.AuthStorage
 import com.example.spotifyclone.utils.SessionManager
 import com.example.spotifyclone.viewmodel.AuthViewModel
 
@@ -48,7 +49,15 @@ fun SignUpScreen(
     var password by remember { mutableStateOf("") }
 
     LaunchedEffect(uiState.authData) {
-        if (uiState.authData != null) {
+        uiState.authData?.let { auth ->
+            AuthStorage.saveAuth(
+                context = context,
+                token = auth.token,
+                userName = auth.user.name,
+                userEmail = auth.user.email,
+                userRole = auth.user.role,
+                avatarUrl = auth.user.avatarUrl
+            )
             onSignUpSuccess()
         }
     }
@@ -72,7 +81,7 @@ fun SignUpScreen(
             modifier = Modifier.offset(x = (-12).dp)
         ) {
             Icon(
-                imageVector = Icons.Default.ArrowBack,
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = null,
                 tint = Color.White
             )

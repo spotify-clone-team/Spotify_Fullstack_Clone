@@ -8,6 +8,7 @@ const artistRoutes = require("./routes/artist.routes");
 const albumRoutes = require("./routes/album.routes");
 const playlistRoutes = require("./routes/playlist.routes");
 const uploadRoutes = require("./routes/upload.routes");
+const userRoutes = require("./routes/user.routes");
 const errorMiddleware = require("./middleware/error.middleware");
 
 const app = express();
@@ -30,6 +31,7 @@ app.use("/api/artists", artistRoutes);
 app.use("/api/albums", albumRoutes);
 app.use("/api/playlists", playlistRoutes);
 app.use("/api/uploads", uploadRoutes);
+app.use("/api/users", userRoutes);
 
 app.use(errorMiddleware);
 

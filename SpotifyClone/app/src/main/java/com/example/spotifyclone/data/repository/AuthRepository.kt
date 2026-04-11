@@ -3,7 +3,9 @@ package com.example.spotifyclone.data.repository
 import com.example.spotifyclone.data.model.AuthData
 import com.example.spotifyclone.data.model.LoginRequest
 import com.example.spotifyclone.data.model.RegisterRequest
+import com.example.spotifyclone.data.model.User
 import com.example.spotifyclone.data.remote.ApiClient
+import okhttp3.MultipartBody
 
 class AuthRepository {
 
@@ -23,5 +25,12 @@ class AuthRepository {
 
         return response.data
             ?: throw IllegalStateException("Đăng ký thất bại: máy chủ không trả về dữ liệu người dùng.")
+    }
+
+    suspend fun uploadAvatar(avatarPart: MultipartBody.Part): User {
+        val response = ApiClient.authApiService.uploadAvatar(avatarPart)
+
+        return response.data
+            ?: throw IllegalStateException("Upload avatar thất bại: máy chủ không trả về dữ liệu người dùng.")
     }
 }

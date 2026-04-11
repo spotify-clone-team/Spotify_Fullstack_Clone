@@ -21,12 +21,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -37,8 +38,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,12 +47,15 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import com.example.spotifyclone.navigation.AppRoute
 import com.example.spotifyclone.ui.theme.SpotifyBlack
+import com.example.spotifyclone.utils.AuthStorage
 import com.example.spotifyclone.viewmodel.LibraryViewModel
 import com.example.spotifyclone.viewmodel.PlayerViewModel
 
@@ -64,6 +68,9 @@ fun LibraryScreen(
 ) {
     val uiState by libraryViewModel.uiState.collectAsState()
     var isMenuExpanded by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val avatarUrl = AuthStorage.getAvatarUrl(context)
 
     Column(
         modifier = Modifier
@@ -79,7 +86,7 @@ fun LibraryScreen(
         ) {
             Box {
                 AsyncImage(
-                    model = "https://i.pravatar.cc/150?u=spotify_user",
+                    model = avatarUrl ?: "https://i.pravatar.cc/150?u=spotify_user",
                     contentDescription = null,
                     modifier = Modifier
                         .size(36.dp)
@@ -94,10 +101,25 @@ fun LibraryScreen(
                     modifier = Modifier.background(Color(0xFF282828))
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Đăng xuất", color = Color.White) },
+                        text = { Text("View Profile", color = Color.White) },
                         leadingIcon = {
                             Icon(
-                                imageVector = Icons.Default.ExitToApp,
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
+                        },
+                        onClick = {
+                            isMenuExpanded = false
+                            navController.navigate(AppRoute.PROFILE)
+                        }
+                    )
+
+                    DropdownMenuItem(
+                        text = { Text("Logout", color = Color.White) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                                 contentDescription = null,
                                 tint = Color.White
                             )
@@ -113,7 +135,7 @@ fun LibraryScreen(
             Spacer(modifier = Modifier.width(16.dp))
 
             Text(
-                text = "Your Library",
+                text = "Spotify Library",
                 color = Color.White,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
@@ -165,7 +187,7 @@ fun LibraryScreen(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Default.Sort,
+                    imageVector = Icons.AutoMirrored.Filled.Sort,
                     contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier.size(16.dp)

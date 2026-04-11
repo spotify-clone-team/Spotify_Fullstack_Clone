@@ -9,13 +9,15 @@ object AppRoute {
     const val LOGIN = "login"
 
     // Luồng App Chính
-    const val MAIN = "main" // Đây là vỏ bọc chứa BottomNav
+    const val MAIN = "main"
     const val HOME = "home"
     const val SEARCH = "search"
     const val LIBRARY = "library"
+    const val PROFILE = "profile"
 
-    // Màn hình phát nhạc (FULL SCREEN)
+    // Màn hình phát nhạc
     const val PLAYER = "player"
-    // route để đi vào trong library 
+
+    // Route chi tiết thư viện
     const val LIBRARY_DETAIL = "library_detail/{type}/{id}/{title}"
 }
