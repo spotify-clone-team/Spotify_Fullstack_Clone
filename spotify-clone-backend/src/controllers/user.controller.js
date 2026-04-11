@@ -5,12 +5,12 @@ const User = require("../models/User");
 
 const uploadAvatar = async (req, res, next) => {
   try {
-    const userId = req.user.id; // ✅ FIX CHÍNH XÁC
+    const userId = req.user.userId; // ✅ Sửa từ id thành userId
 
     if (!userId) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized"
+        message: "Unauthorized: Missing User ID in token"
       });
     }
 
