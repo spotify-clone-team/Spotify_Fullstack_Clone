@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const cloudinary = require("../config/cloudinary");
+const { cloudinary } = require("../config/cloudinary");
 const User = require("../models/User");
 
 const uploadAvatar = async (req, res, next) => {

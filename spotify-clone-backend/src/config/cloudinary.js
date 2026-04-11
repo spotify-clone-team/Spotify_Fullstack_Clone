@@ -30,4 +30,4 @@ const storageAudio = new CloudinaryStorage({
 const uploadCover = multer({ storage: storageCover });
 const uploadAudio = multer({ storage: storageAudio });
 
-module.exports = { uploadCover, uploadAudio };
+module.exports = { cloudinary, uploadCover, uploadAudio };
