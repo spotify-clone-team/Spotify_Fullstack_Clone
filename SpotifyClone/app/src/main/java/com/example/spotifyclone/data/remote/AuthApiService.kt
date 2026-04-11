@@ -7,6 +7,7 @@ import com.example.spotifyclone.data.model.RegisterRequest
 import com.example.spotifyclone.data.model.User
 import okhttp3.MultipartBody
 import retrofit2.http.Body
+import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.PUT
@@ -27,6 +28,7 @@ interface AuthApiService {
     @Multipart
     @PUT("users/me/avatar")
     suspend fun uploadAvatar(
+        @Header("Authorization") authorization: String,
         @Part avatar: MultipartBody.Part
     ): ApiResponse<User>
 }
