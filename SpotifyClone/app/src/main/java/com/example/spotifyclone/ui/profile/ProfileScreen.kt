@@ -24,7 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.Button
@@ -88,7 +88,7 @@ fun ProfileScreen(
                 isUploading = true
 
                 val avatarPart = createAvatarPart(context, uri)
-                val updatedUser = authRepository.uploadAvatar(avatarPart)
+                val updatedUser = authRepository.uploadAvatar(context, avatarPart)
 
                 avatarUrl = updatedUser.avatarUrl
                 userName = updatedUser.name
@@ -309,7 +309,7 @@ fun ProfileScreen(
             )
         ) {
             Icon(
-                imageVector = Icons.Default.Logout,
+                imageVector = Icons.AutoMirrored.Filled.Logout,
                 contentDescription = null
             )
             Spacer(modifier = Modifier.width(8.dp))
