@@ -11,8 +11,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -74,6 +76,8 @@ fun SpotifyInputField(
     isPassword: Boolean = false,
     keyboardType: KeyboardType = KeyboardType.Text
 ) {
+    var passwordVisible by remember { mutableStateOf(false) }
+
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -81,8 +85,18 @@ fun SpotifyInputField(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         singleLine = true,
         shape = RoundedCornerShape(12.dp),
-        visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+        visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType, autoCorrect = true),
+        trailingIcon = if (isPassword) {
+            {
+                val icon = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                val description = if (passwordVisible) "Ẩn mật khẩu" else "Hiện mật khẩu"
+
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Icon(imageVector = icon, contentDescription = description, tint = Color.White.copy(alpha = 0.7f))
+                }
+            }
+        } else null,
         // ĐÃ SỬA LỖI Ở ĐOẠN NÀY: Dùng OutlinedTextFieldDefaults thay vì TextFieldDefaults cũ
         colors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = Color.White,
