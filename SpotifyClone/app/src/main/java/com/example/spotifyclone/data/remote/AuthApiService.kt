@@ -4,6 +4,7 @@ import com.example.spotifyclone.data.model.ApiResponse
 import com.example.spotifyclone.data.model.AuthData
 import com.example.spotifyclone.data.model.LoginRequest
 import com.example.spotifyclone.data.model.RegisterRequest
+import com.example.spotifyclone.data.model.SignatureData
 import com.example.spotifyclone.data.model.User
 import okhttp3.MultipartBody
 import retrofit2.http.Body
