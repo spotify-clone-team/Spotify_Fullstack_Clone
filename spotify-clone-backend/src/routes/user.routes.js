@@ -4,7 +4,7 @@ const path = require("path");
 const fs = require("fs");
 
 const authMiddleware = require("../middleware/auth.middleware");
-const { uploadAvatar } = require("../controllers/user.controller");
+const { uploadAvatar, updateAvatarUrl } = require("../controllers/user.controller");
 
 const router = express.Router();
 
@@ -40,5 +40,6 @@ const upload = multer({
 });
 
 router.put("/me/avatar", authMiddleware, upload.single("avatar"), uploadAvatar);
+router.put("/me/avatar-url", authMiddleware, updateAvatarUrl);
 
 module.exports = router;

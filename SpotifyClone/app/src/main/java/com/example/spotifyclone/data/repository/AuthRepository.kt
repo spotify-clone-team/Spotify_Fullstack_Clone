@@ -34,6 +34,31 @@ class AuthRepository {
             ?: throw IllegalStateException("Đăng ký thất bại: máy chủ không trả về dữ liệu người dùng.")
     }
 
+    suspend fun getSignature(context: Context): com.example.spotifyclone.data.model.SignatureData {
+        val token = AuthStorage.getToken(context)
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: throw IllegalStateException("Chưa đăng nhập, không có token")
+
+        val response = ApiClient.authApiService.getSignature("Bearer $token")
+        return response.data
+            ?: throw IllegalStateException("Lấy signature thất bại")
+    }
+
+    suspend fun updateAvatarUrl(context: Context, avatarUrl: String): User {
+        val token = AuthStorage.getToken(context)
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: throw IllegalStateException("Chưa đăng nhập, không có token")
+
+        val response = ApiClient.authApiService.updateAvatarUrl(
+            "Bearer $token",
+            mapOf("avatarUrl" to avatarUrl)
+        )
+        return response.data
+            ?: throw IllegalStateException("Cập nhật avatarURL thất bại")
+    }
+
     suspend fun uploadAvatar(
         context: Context,
         avatarPart: MultipartBody.Part

@@ -3,11 +3,13 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
 
 // ĐIỀN THÔNG SỐ CỦA BỒ VÀO ĐÂY
-cloudinary.config({
+const cloudinaryConfig = {
   cloud_name: 'dt6dbeo5u',
   api_key: '551813779419298',
   api_secret: '4nJop1FuCEF3uBxpSkUOdkfMexs'
-});
+};
+
+cloudinary.config(cloudinaryConfig);
 
 // Cấu hình kho chứa cho Ảnh
 const storageCover = new CloudinaryStorage({
@@ -30,4 +32,4 @@ const storageAudio = new CloudinaryStorage({
 const uploadCover = multer({ storage: storageCover });
 const uploadAudio = multer({ storage: storageAudio });
 
-module.exports = { cloudinary, uploadCover, uploadAudio };
+module.exports = { cloudinary, uploadCover, uploadAudio, cloudinaryConfig };

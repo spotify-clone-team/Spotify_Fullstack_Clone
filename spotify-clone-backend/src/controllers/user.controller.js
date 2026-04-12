@@ -47,6 +47,32 @@ const uploadAvatar = async (req, res, next) => {
   }
 };
 
+const updateAvatarUrl = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { avatarUrl } = req.body;
+
+    if (!avatarUrl) {
+      return res.status(400).json({ success: false, message: "avatarUrl is required" });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { avatarUrl },
+      { new: true }
+    ).select("-passwordHash");
+
+    return res.status(200).json({
+      success: true,
+      message: "Cập nhật avatar thành công",
+      data: updatedUser
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
-  uploadAvatar
+  uploadAvatar,
+  updateAvatarUrl
 };

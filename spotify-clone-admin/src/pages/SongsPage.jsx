@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
 import api from "../services/api";
 import { getAuthHeaders } from "../utils/auth";
 
@@ -118,22 +119,37 @@ export default function SongsPage() {
 
     try {
       setUploadingCover(true);
+      setMessage("Đang lấy chữ ký từ server...");
 
-      const formData = new FormData();
-      formData.append("cover", file);
-
-      const response = await api.post("/songs/upload-cover", formData, {
+      // 1. Lấy Signature từ Backend
+      const sigRes = await api.get("/uploads/signature?folder=spotify-clone/covers", {
         headers: getAuthHeaders()
       });
+      const { signature, timestamp, cloud_name, api_key } = sigRes.data.data;
+
+      // 2. Upload trực tiếp lên Cloudinary
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("api_key", api_key);
+      formData.append("timestamp", timestamp);
+      formData.append("signature", signature);
+      formData.append("folder", "spotify-clone/covers");
+
+      setMessage("Đang đẩy ảnh trực tiếp lên Cloudinary...");
+      const cloudRes = await axios.post(
+        `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`,
+        formData
+      );
 
       setForm((prev) => ({
         ...prev,
-        coverUrl: response.data.data.coverUrl
+        coverUrl: cloudRes.data.secure_url
       }));
 
       setMessage("Upload ảnh cover thành công!");
     } catch (error) {
-      setMessage("Upload cover thất bại");
+      console.error(error);
+      setMessage("Upload cover thất bại: " + (error.response?.data?.message || error.message));
     } finally {
       setUploadingCover(false);
     }
@@ -145,22 +161,44 @@ export default function SongsPage() {
 
     try {
       setUploadingAudio(true);
+      setMessage("Đang lấy chữ ký upload nhạc...");
 
-      const formData = new FormData();
-      formData.append("audio", file);
-
-      const response = await api.post("/songs/upload-audio", formData, {
+      // 1. Lấy Signature từ Backend
+      const sigRes = await api.get("/uploads/signature?folder=spotify-clone/songs", {
         headers: getAuthHeaders()
       });
+      const { signature, timestamp, cloud_name, api_key } = sigRes.data.data;
+
+      // 2. Upload trực tiếp lên Cloudinary
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("api_key", api_key);
+      formData.append("timestamp", timestamp);
+      formData.append("signature", signature);
+      formData.append("folder", "spotify-clone/songs");
+      formData.append("resource_type", "auto");
+
+      setMessage("Đang đẩy nhạc lên Cloudinary (Vui lòng đợi, file lớn)...");
+      const cloudRes = await axios.post(
+        `https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`,
+        formData,
+        {
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setMessage(`Đang upload: ${percentCompleted}%`);
+          }
+        }
+      );
 
       setForm((prev) => ({
         ...prev,
-        audioUrl: response.data.data.audioUrl
+        audioUrl: cloudRes.data.secure_url
       }));
 
       setMessage("Upload file mp3 thành công!");
     } catch (error) {
-      setMessage("Upload audio thất bại");
+      console.error(error);
+      setMessage("Upload audio thất bại: " + (error.response?.data?.message || error.message));
     } finally {
       setUploadingAudio(false);
     }

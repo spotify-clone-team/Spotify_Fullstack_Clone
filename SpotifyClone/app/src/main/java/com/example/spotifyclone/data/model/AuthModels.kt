@@ -23,3 +23,10 @@ data class RegisterRequest(
     val email: String,
     val password: String
 )
+
+data class SignatureData(
+    val timestamp: Long,
+    val signature: String,
+    val cloud_name: String,
+    val api_key: String
+)

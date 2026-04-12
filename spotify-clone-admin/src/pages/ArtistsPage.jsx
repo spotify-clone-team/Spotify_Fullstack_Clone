@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import axios from "axios";
 import api from "../services/api";
 import { getAuthHeaders } from "../utils/auth";
 
@@ -40,23 +41,37 @@ export default function ArtistsPage() {
 
     try {
       setUploadingImage(true);
-      setMessage("");
+      setMessage("Đang lấy chữ ký từ server...");
 
-      const formData = new FormData();
-      formData.append("cover", file);
-
-      const response = await api.post("/songs/upload-cover", formData, {
+      // 1. Lấy Signature từ Backend
+      const sigRes = await api.get("/uploads/signature?folder=spotify-clone/artists", {
         headers: getAuthHeaders()
       });
+      const { signature, timestamp, cloud_name, api_key } = sigRes.data.data;
+
+      // 2. Upload trực tiếp lên Cloudinary
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("api_key", api_key);
+      formData.append("timestamp", timestamp);
+      formData.append("signature", signature);
+      formData.append("folder", "spotify-clone/artists");
+
+      setMessage("Đang tải ảnh lên Cloudinary...");
+      const cloudRes = await axios.post(
+        `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`,
+        formData
+      );
 
       setForm((prev) => ({
         ...prev,
-        imageUrl: response.data.data.coverUrl
+        imageUrl: cloudRes.data.secure_url
       }));
 
-      setMessage("Upload ảnh nghệ sĩ lên Cloudinary thành công");
+      setMessage("Upload ảnh nghệ sĩ thành công!");
     } catch (error) {
-      setMessage("Upload ảnh thất bại");
+      console.error(error);
+      setMessage("Upload ảnh thất bại: " + (error.response?.data?.message || error.message));
     } finally {
       setUploadingImage(false);
     }

@@ -28,6 +28,31 @@ const uploadImageFile = async (req, res, next) => {
   }
 };
 
+const { cloudinary, cloudinaryConfig } = require("../config/cloudinary");
+
+const getSignature = async (req, res, next) => {
+  try {
+    const timestamp = Math.round(new Date().getTime() / 1000);
+    const signature = cloudinary.utils.api_sign_request(
+      { timestamp: timestamp, folder: req.query.folder || "spotify-clone" },
+      cloudinaryConfig.api_secret
+    );
+
+    res.json({
+      success: true,
+      data: {
+        timestamp,
+        signature,
+        cloud_name: cloudinaryConfig.cloud_name,
+        api_key: cloudinaryConfig.api_key
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
-  uploadImageFile
+  uploadImageFile,
+  getSignature
 };

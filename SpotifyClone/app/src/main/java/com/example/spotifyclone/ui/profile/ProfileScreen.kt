@@ -88,9 +88,16 @@ fun ProfileScreen(
         scope.launch {
             try {
                 isUploading = true
-
-                val avatarPart = createAvatarPart(context, uri)
-                val updatedUser = authRepository.uploadAvatar(context, avatarPart)
+                
+                // 1. Lấy Signature từ Backend
+                val sigRes = authRepository.getSignature(context)
+                
+                // 2. Upload trực tiếp lên Cloudinary bằng OkHttp
+                val file = getFileFromUri(context, uri)
+                val cloudUrl = uploadToCloudinaryDirect(sigRes, file)
+                
+                // 3. Cập nhật URL mới về Backend
+                val updatedUser = authRepository.updateAvatarUrl(context, cloudUrl)
 
                 avatarUrl = updatedUser.avatarUrl
                 userName = updatedUser.name
@@ -101,10 +108,11 @@ fun ProfileScreen(
 
                 Toast.makeText(context, "Cập nhật ảnh đại diện thành công", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
+                android.util.Log.e("ProfileScreen", "Upload failed", e)
                 Toast.makeText(
                     context,
-                    e.message ?: "Upload ảnh đại diện thất bại",
-                    Toast.LENGTH_SHORT
+                    "Lỗi: ${e.localizedMessage}",
+                    Toast.LENGTH_LONG
                 ).show()
             } finally {
                 isUploading = false
@@ -323,6 +331,48 @@ fun ProfileScreen(
             )
         }
     }
+}
+
+private fun getFileFromUri(context: Context, uri: Uri): File {
+    val inputStream = context.contentResolver.openInputStream(uri)
+        ?: throw IllegalStateException("Không thể mở ảnh")
+    val tempFile = File.createTempFile("cloudinary_up_", ".jpg", context.cacheDir)
+    tempFile.outputStream().use { outputStream ->
+        inputStream.use { it.copyTo(outputStream) }
+    }
+    return tempFile
+}
+
+suspend fun uploadToCloudinaryDirect(
+    sig: com.example.spotifyclone.data.model.SignatureData,
+    file: File
+): String = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+    val client = okhttp3.OkHttpClient()
+    val requestBody = okhttp3.MultipartBody.Builder()
+        .setType(okhttp3.MultipartBody.FORM)
+        .addFormDataPart("file", file.name, file.asRequestBody("image/*".toMediaTypeOrNull()))
+        .addFormDataPart("api_key", sig.api_key)
+        .addFormDataPart("timestamp", sig.timestamp.toString())
+        .addFormDataPart("signature", sig.signature)
+        .addFormDataPart("folder", "spotify-clone/avatars")
+        .build()
+
+    val request = okhttp3.Request.Builder()
+        .url("https://api.cloudinary.com/v1_1/${sig.cloud_name}/image/upload")
+        .post(requestBody)
+        .build()
+
+    val response = client.newCall(request).execute()
+    val bodyString = response.body?.string() ?: ""
+    
+    if (!response.isSuccessful) {
+        throw IllegalStateException("Cloudinary Error: $bodyString")
+    }
+
+    // Parse URL from JSON (Simple extraction to avoid adding more dependencies)
+    val urlRegex = """"secure_url"\s*:\s*"([^"]+)"""".toRegex()
+    val match = urlRegex.find(bodyString)
+    match?.groups?.get(1)?.value ?: throw IllegalStateException("Không tìm thấy URL trong phản hồi")
 }
 
 private fun createAvatarPart(context: Context, uri: Uri): MultipartBody.Part {
