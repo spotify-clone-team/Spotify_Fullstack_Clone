@@ -176,4 +176,4 @@ Tổ chức một project Full-stack nhiều thành phần
 Nguyễn Khả Dương
 
 GitHub: @Kad1711
-<p align="center"> 🎧 <b>Spotify Fullstack Clone</b><br> Android • Node.js • Express • MongoDB </p> ```
+Spotify Fullstack Clone
