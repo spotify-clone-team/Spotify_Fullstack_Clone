@@ -1,35 +1,39 @@
 # ======================
 # NODE / REACT (GLOBAL)
 # ======================
-node_modules
-dist
-build
+node_modules/
+**/node_modules/
+
+dist/
+build/
+coverage/
+
+# Environment variables
 .env
-.env.local
-.env.production
-.env.development
-coverage
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
 
 # ======================
 # BACKEND
 # ======================
-spotify-clone-backend/node_modules
-spotify-clone-backend/.env
 spotify-clone-backend/uploads/audio/*
 spotify-clone-backend/uploads/covers/*
+
 !spotify-clone-backend/uploads/audio/.gitkeep
 !spotify-clone-backend/uploads/covers/.gitkeep
 
 # ======================
 # ADMIN (FRONTEND)
 # ======================
-spotify-clone-admin/node_modules
-spotify-clone-admin/dist
+spotify-clone-admin/dist/
 
 # ======================
 # VITE CACHE
 # ======================
-node_modules/.vite
+**/node_modules/.vite/
 
 # ======================
 # SYSTEM FILES
@@ -40,16 +44,16 @@ Thumbs.db
 # ======================
 # IDE
 # ======================
-.vscode
-.idea
+.vscode/
+.idea/
 
 # ======================
 # ANDROID
 # ======================
-SpotifyClone/.gradle
-SpotifyClone/.idea
-SpotifyClone/build
-SpotifyClone/app/build
+SpotifyClone/.gradle/
+SpotifyClone/.idea/
+SpotifyClone/build/
+SpotifyClone/app/build/
 SpotifyClone/local.properties
-SpotifyClone/.kotlin
+SpotifyClone/.kotlin/
 SpotifyClone/.DS_Store
